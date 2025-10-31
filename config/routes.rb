@@ -12,9 +12,10 @@ Rails.application.routes.draw do
         # Defines the root path route ("/")
         root "cryptos#index"
 
-        # Buy crypto routes
-        get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto
-        post "cryptos/:symbol/buy", to: "cryptos#create_order", as: :create_order
+  # Buy crypto routes
+  get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto
+  post "cryptos/:symbol/confirm", to: "cryptos#confirm", as: :confirm_order
+  post "cryptos/:symbol/buy", to: "cryptos#create_order", as: :create_order
 
         # Activities/Transaction history
         get "activities", to: "cryptos#activities", as: :activities

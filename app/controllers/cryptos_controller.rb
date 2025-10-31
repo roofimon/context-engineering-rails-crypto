@@ -18,6 +18,38 @@ class CryptosController < ApplicationController
     end
   end
 
+  def confirm
+    symbol = params[:symbol]
+    @asset = find_asset_by_symbol(symbol)
+    
+    unless @asset
+      redirect_to root_path, alert: "Asset not found"
+      return
+    end
+
+    units = params[:units].to_f
+    
+    # Validate units
+    if units < 1
+      redirect_to buy_crypto_path(symbol), alert: "Number of units must be at least 1.00"
+      return
+    end
+
+    # Validate decimal places (max 2)
+    units_str = params[:units].to_s
+    if units_str.include?('.')
+      decimal_places = units_str.split('.')[1]&.length || 0
+      if decimal_places > 2
+        redirect_to buy_crypto_path(symbol), alert: "Number of units can have maximum 2 decimal places"
+        return
+      end
+    end
+
+    @units = units
+    @market_price = params[:market_price].to_f
+    @total_cost = @units * @market_price
+  end
+
   def create_order
     symbol = params[:symbol]
     asset = find_asset_by_symbol(symbol)

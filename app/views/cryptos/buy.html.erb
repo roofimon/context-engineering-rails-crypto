@@ -10,7 +10,7 @@
         <% end %>
       </div>
       
-      <%= form_with url: create_order_path(symbol: @asset[:symbol]), method: :post, local: true, data: { turbo_frame: "_top", action: "submit->buy-form#validateSubmit" } do |f| %>
+      <%= form_with url: confirm_order_path(symbol: @asset[:symbol]), method: :post, local: true, data: { turbo_frame: "market_data", action: "submit->buy-form#validateSubmit" } do |f| %>
         <div class="mb-6">
           <%= f.label :market_price, "Market Price ($)", class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= f.number_field :market_price, 
