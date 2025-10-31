@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+
+require "fileutils"
+
+# Ensure we're in the app root
+FileUtils.cd(File.dirname(__FILE__) + "/..") do
+  # Start Rails server in background
+  rails_pid = spawn("./bin/rails", "server", *ARGV)
+  
+  # Start Tailwind CSS watcher in background
+  tailwind_pid = spawn("npm", "run", "watch:css")
+  
+  # Wait for either process to exit
+  begin
+    Process.wait(rails_pid)
+  rescue Interrupt
+    puts "\nShutting down..."
+  ensure
+    # Kill both processes
+    Process.kill("TERM", rails_pid) rescue nil
+    Process.kill("TERM", tailwind_pid) rescue nil
+    Process.wait(tailwind_pid) rescue nil
+  end
+end
