@@ -12,7 +12,7 @@ class CryptosController < ApplicationController
   def buy
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)
-    
+
     unless @asset
       redirect_to root_path, alert: "Asset not found"
     end
@@ -21,14 +21,14 @@ class CryptosController < ApplicationController
   def confirm
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)
-    
+
     unless @asset
       redirect_to root_path, alert: "Asset not found"
       return
     end
 
     units = params[:units].to_f
-    
+
     # Validate units
     if units < 1
       redirect_to buy_crypto_path(symbol), alert: "Number of units must be at least 1.00"
@@ -37,8 +37,8 @@ class CryptosController < ApplicationController
 
     # Validate decimal places (max 2)
     units_str = params[:units].to_s
-    if units_str.include?('.')
-      decimal_places = units_str.split('.')[1]&.length || 0
+    if units_str.include?(".")
+      decimal_places = units_str.split(".")[1]&.length || 0
       if decimal_places > 2
         redirect_to buy_crypto_path(symbol), alert: "Number of units can have maximum 2 decimal places"
         return
@@ -53,14 +53,14 @@ class CryptosController < ApplicationController
   def create_order
     symbol = params[:symbol]
     asset = find_asset_by_symbol(symbol)
-    
+
     unless asset
       redirect_to root_path, alert: "Asset not found"
       return
     end
 
     units = params[:units].to_f
-    
+
     # Validate units
     if units < 1
       redirect_to buy_crypto_path(symbol), alert: "Number of units must be at least 1.00"
@@ -69,8 +69,8 @@ class CryptosController < ApplicationController
 
     # Validate decimal places (max 2)
     units_str = params[:units].to_s
-    if units_str.include?('.')
-      decimal_places = units_str.split('.')[1]&.length || 0
+    if units_str.include?(".")
+      decimal_places = units_str.split(".")[1]&.length || 0
       if decimal_places > 2
         redirect_to buy_crypto_path(symbol), alert: "Number of units can have maximum 2 decimal places"
         return
@@ -78,7 +78,7 @@ class CryptosController < ApplicationController
     end
 
     market_price = params[:market_price].to_f
-    
+
     # Store order in session (Rails sessions store with string keys)
     order = {
       "symbol" => symbol.upcase,
@@ -86,10 +86,10 @@ class CryptosController < ApplicationController
       "price" => market_price,
       "timestamp" => Time.current.to_s
     }
-    
+
     session[:orders] ||= []
     session[:orders] << order
-    
+
     redirect_to root_path, notice: "Buy order placed for #{asset[:name]} (#{asset[:symbol]})"
   end
 
@@ -178,19 +178,17 @@ class CryptosController < ApplicationController
 
     # Calculate current quantity based on orders
     orders = session[:orders] || []
-    
+
     base_assets.map do |asset|
       # Calculate total purchased units for this asset
       purchased_units = orders
-        .select { |order| order["symbol"] == asset[:symbol] }
-        .sum { |order| order["units"].to_f }
-      
+                        .select { |order| order["symbol"] == asset[:symbol] }
+                        .sum { |order| order["units"].to_f }
+
       # Current quantity = initial quantity + purchased units
       current_quantity = asset[:initial_quantity] + purchased_units
-      
+
       asset.merge(quantity: current_quantity)
     end
   end
-
 end
-

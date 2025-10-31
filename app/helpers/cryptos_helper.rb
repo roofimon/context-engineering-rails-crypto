@@ -16,4 +16,3 @@ module CryptosHelper
     asset[:quantity] * asset[:overall_price]
   end
 end
-
