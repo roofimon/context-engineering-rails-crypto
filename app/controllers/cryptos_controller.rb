@@ -3,6 +3,12 @@ class CryptosController < ApplicationController
     @assets = index_assets
   end
 
+  def activities
+    @orders = session[:orders] || []
+    # Sort orders by timestamp, most recent first
+    @orders = @orders.sort_by { |order| order["timestamp"] }.reverse
+  end
+
   def buy
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)

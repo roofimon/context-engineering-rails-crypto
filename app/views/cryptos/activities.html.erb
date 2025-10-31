@@ -1,0 +1,97 @@
+<% content_for :title, "Activities - Store" %>
+
+<div class="min-h-screen bg-white">
+  <!-- Header -->
+  <header class="border-b border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-6">
+      <h1 class="text-3xl font-bold text-gray-900">Activities</h1>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <%= turbo_frame_tag "market_data" do %>
+      <% if @orders.empty? %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No transactions yet</h3>
+          <p class="mt-1 text-sm text-gray-500">Your buy orders will appear here.</p>
+        </div>
+      <% else %>
+        <!-- Desktop Table View -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Symbol</th>
+                <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Units</th>
+                <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+                <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <% @orders.each do |order| %>
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="py-5 px-4">
+                    <span class="text-sm font-medium text-gray-900"><%= order["symbol"] %></span>
+                  </td>
+                  <td class="py-5 px-4 text-right">
+                    <span class="text-sm text-gray-900"><%= format_quantity(order["units"].to_f) %></span>
+                  </td>
+                  <td class="py-5 px-4 text-right">
+                    <span class="text-sm text-gray-900">$<%= format_price(order["price"].to_f) %></span>
+                  </td>
+                  <td class="py-5 px-4 text-right">
+                    <span class="text-sm font-semibold text-gray-900">$<%= format_price(order["units"].to_f * order["price"].to_f) %></span>
+                  </td>
+                  <td class="py-5 px-4">
+                    <span class="text-sm text-gray-500">
+                      <%= Time.parse(order["timestamp"]).strftime("%b %d, %Y %I:%M %p") %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="md:hidden space-y-4">
+          <% @orders.each do |order| %>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <div class="text-base font-semibold text-gray-900"><%= order["symbol"] %></div>
+                  <div class="text-sm text-gray-500">
+                    <%= Time.parse(order["timestamp"]).strftime("%b %d, %Y %I:%M %p") %>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-lg font-semibold text-gray-900">
+                    $<%= format_price(order["units"].to_f * order["price"].to_f) %>
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                <div>
+                  <div class="text-xs text-gray-500">Units</div>
+                  <div class="text-sm font-medium text-gray-900"><%= format_quantity(order["units"].to_f) %></div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500">Price</div>
+                  <div class="text-sm font-medium text-gray-900">$<%= format_price(order["price"].to_f) %></div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </main>
+
+  <%= render "bottom_navigation" %>
+</div>
+
