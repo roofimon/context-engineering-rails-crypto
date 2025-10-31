@@ -19,4 +19,7 @@ Rails.application.routes.draw do
 
   # Activities/Transaction history
   get "activities", to: "cryptos#activities", as: :activities
+
+  # PIN authentication routes
+  resources :pins, only: [:new, :create]
 end

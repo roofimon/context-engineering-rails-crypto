@@ -1,0 +1,103 @@
+<% content_for :title, "Enter PIN - Store" %>
+
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" data-controller="pin">
+  <!-- Flash Messages -->
+  <% if flash[:alert] %>
+    <div class="px-4 pt-4">
+      <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm text-red-800 text-center"><%= flash[:alert] %></p>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Error Message (for JS) -->
+  <div data-pin-target="errorMessage" class="hidden px-4 pt-4">
+    <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+      <p class="text-sm text-red-800 text-center"></p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col items-center justify-center px-6 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Enter PIN</h1>
+      <p class="text-gray-500 text-sm">Enter your 4-digit PIN to continue</p>
+    </div>
+
+    <%= form_with url: pins_path, method: :post, local: true, class: "w-full max-w-sm", data: { "pin-target": "form" } do |form| %>
+      <!-- Hidden Input Field -->
+      <%= form.hidden_field :pin, data: { "pin-target": "pinInput" }, value: "" %>
+
+      <!-- PIN Entry Section -->
+      <div class="text-center mb-8">
+        <!-- PIN Dots -->
+        <div class="flex justify-center gap-5 mb-8" data-pin-target="pinDots">
+          <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+          <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+          <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+          <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+        </div>
+      </div>
+
+      <!-- Numeric Keypad -->
+      <div class="mt-12">
+        <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+          <!-- Row 1 -->
+          <button type="button" data-key="1" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            1
+          </button>
+          <button type="button" data-key="2" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            2
+          </button>
+          <button type="button" data-key="3" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            3
+          </button>
+
+          <!-- Row 2 -->
+          <button type="button" data-key="4" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            4
+          </button>
+          <button type="button" data-key="5" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            5
+          </button>
+          <button type="button" data-key="6" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            6
+          </button>
+
+          <!-- Row 3 -->
+          <button type="button" data-key="7" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            7
+          </button>
+          <button type="button" data-key="8" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            8
+          </button>
+          <button type="button" data-key="9" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            9
+          </button>
+
+          <!-- Row 4 -->
+          <button type="button" data-key="clear" data-action="click->pin#handleKeyPress" class="aspect-square bg-gray-100 border-2 border-gray-200 rounded-2xl text-base font-medium text-gray-600 active:bg-gray-200 active:scale-95 transition-all shadow-sm">
+            Clear
+          </button>
+          <button type="button" data-key="0" data-action="click->pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+            0
+          </button>
+          <button type="button" data-key="backspace" data-action="click->pin#handleKeyPress" class="aspect-square bg-gray-100 border-2 border-gray-200 rounded-2xl text-xl font-medium text-gray-600 active:bg-gray-200 active:scale-95 transition-all shadow-sm">
+            ⌫
+          </button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+  @media (max-height: 600px) {
+    .min-h-screen {
+      min-height: auto;
+    }
+  }
+</style>
+
+
