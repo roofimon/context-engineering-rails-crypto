@@ -18,7 +18,7 @@ class CryptosController < ApplicationController
     
     if asset
       market_price = params[:market_price].to_f
-      total = params[:total].to_f
+      units = params[:units].to_f
       
       # Here you would process the buy order
       # For now, we'll just redirect back with a success message
