@@ -15,6 +15,8 @@ Rails.application.routes.draw do
   # Buy crypto routes
   get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto
   post "cryptos/:symbol/confirm", to: "cryptos#confirm", as: :confirm_order
+  get "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin", as: :verify_order_pin
+  post "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin"
   post "cryptos/:symbol/buy", to: "cryptos#create_order", as: :create_order
 
   # Activities/Transaction history
