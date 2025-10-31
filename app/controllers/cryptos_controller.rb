@@ -41,8 +41,17 @@ class CryptosController < ApplicationController
 
     market_price = params[:market_price].to_f
     
-    # Here you would process the buy order
-    # For now, we'll just redirect back with a success message
+    # Store order in session (Rails sessions store with string keys)
+    order = {
+      "symbol" => symbol.upcase,
+      "units" => units,
+      "price" => market_price,
+      "timestamp" => Time.current.to_s
+    }
+    
+    session[:orders] ||= []
+    session[:orders] << order
+    
     redirect_to root_path, notice: "Buy order placed for #{asset[:name]} (#{asset[:symbol]})"
   end
 
@@ -54,12 +63,12 @@ class CryptosController < ApplicationController
   end
 
   def index_assets
-    [
+    base_assets = [
       {
         name: "Bitcoin",
         symbol: "BTC",
         icon: "₿",
-        quantity: 2.5,
+        initial_quantity: 2.5,
         exchanges: {
           "Binance" => { price: 94245.32, change: nil },
           "Coinbase" => { price: 94312.03, change: nil }
@@ -71,7 +80,7 @@ class CryptosController < ApplicationController
         name: "Ethereum",
         symbol: "ETH",
         icon: "Ξ",
-        quantity: 10.25,
+        initial_quantity: 10.25,
         exchanges: {
           "Binance" => { price: 6032.15, change: :up },
           "Coinbase" => { price: 5998.71, change: :down }
@@ -83,7 +92,7 @@ class CryptosController < ApplicationController
         name: "Binance",
         symbol: "BNB",
         icon: "BNB",
-        quantity: 5.0,
+        initial_quantity: 5.0,
         exchanges: {
           "Binance" => { price: 2789.01, change: nil },
           "Coinbase" => { price: 2708.75, change: :down }
@@ -95,7 +104,7 @@ class CryptosController < ApplicationController
         name: "Cardano",
         symbol: "ADA",
         icon: "ADA",
-        quantity: 500.0,
+        initial_quantity: 500.0,
         exchanges: {
           "Binance" => { price: 4.02, change: nil },
           "Coinbase" => { price: 3.98, change: :down }
@@ -107,7 +116,7 @@ class CryptosController < ApplicationController
         name: "Solana",
         symbol: "SOL",
         icon: "SOL",
-        quantity: 25.5,
+        initial_quantity: 25.5,
         exchanges: {
           "Binance" => { price: 144.18, change: :down },
           "Coinbase" => { price: 145.28, change: nil }
@@ -119,7 +128,7 @@ class CryptosController < ApplicationController
         name: "Polkadot",
         symbol: "DOT",
         icon: "DOT",
-        quantity: 100.0,
+        initial_quantity: 100.0,
         exchanges: {
           "Binance" => { price: nil, change: nil },
           "Coinbase" => { price: 69.45, change: nil }
@@ -128,6 +137,22 @@ class CryptosController < ApplicationController
         change: 7.6
       }
     ]
+
+    # Calculate current quantity based on orders
+    orders = session[:orders] || []
+    
+    base_assets.map do |asset|
+      # Calculate total purchased units for this asset
+      purchased_units = orders
+        .select { |order| order["symbol"] == asset[:symbol] }
+        .sum { |order| order["units"].to_f }
+      
+      # Current quantity = initial quantity + purchased units
+      current_quantity = asset[:initial_quantity] + purchased_units
+      
+      asset.merge(quantity: current_quantity)
+    end
   end
+
 end
 
