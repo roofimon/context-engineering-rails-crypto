@@ -34,6 +34,13 @@ class PinsController < ApplicationController
     redirect_to root_path, notice: "PIN verified successfully"
   end
 
+  def destroy
+    # Reset entire session (clears all session data including :is_logged_in and :orders)
+    reset_session
+    
+    redirect_to new_pin_path, notice: "Logged out successfully"
+  end
+
   private
 end
 

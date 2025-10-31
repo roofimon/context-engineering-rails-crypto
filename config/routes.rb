@@ -21,5 +21,6 @@ Rails.application.routes.draw do
   get "activities", to: "cryptos#activities", as: :activities
 
   # PIN authentication routes
-  resources :pins, only: [:new, :create]
+  resources :pins, only: [:new, :create, :destroy]
+  delete "logout", to: "pins#destroy", as: :logout
 end
