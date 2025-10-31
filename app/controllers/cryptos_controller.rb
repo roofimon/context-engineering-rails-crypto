@@ -1,6 +1,42 @@
-class AssetsController < ApplicationController
+class CryptosController < ApplicationController
   def index
-    @assets = [
+    @assets = index_assets
+  end
+
+  def buy
+    symbol = params[:symbol]
+    @asset = find_asset_by_symbol(symbol)
+    
+    unless @asset
+      redirect_to root_path, alert: "Asset not found"
+    end
+  end
+
+  def create_order
+    symbol = params[:symbol]
+    asset = find_asset_by_symbol(symbol)
+    
+    if asset
+      market_price = params[:market_price].to_f
+      total = params[:total].to_f
+      
+      # Here you would process the buy order
+      # For now, we'll just redirect back with a success message
+      redirect_to root_path, notice: "Buy order placed for #{asset[:name]} (#{asset[:symbol]})"
+    else
+      redirect_to root_path, alert: "Asset not found"
+    end
+  end
+
+  private
+
+  def find_asset_by_symbol(symbol)
+    @assets ||= index_assets
+    @assets.find { |a| a[:symbol] == symbol.upcase }
+  end
+
+  def index_assets
+    [
       {
         name: "Bitcoin",
         symbol: "BTC",

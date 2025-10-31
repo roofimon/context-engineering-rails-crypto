@@ -10,5 +10,9 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  root "assets#index"
+  root "cryptos#index"
+  
+  # Buy crypto routes
+  get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto
+  post "cryptos/:symbol/buy", to: "cryptos#create_order", as: :create_order
 end

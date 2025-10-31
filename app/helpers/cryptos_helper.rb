@@ -1,4 +1,4 @@
-module AssetsHelper
+module CryptosHelper
   def format_price(price)
     number_with_delimiter(number_with_precision(price, precision: 2))
   end
