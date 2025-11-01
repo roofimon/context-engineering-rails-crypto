@@ -9,6 +9,10 @@ class CryptosController < ApplicationController
     @orders = @orders.sort_by { |order| order["timestamp"] }.reverse
   end
 
+  def more
+    # Menu page with additional options
+  end
+
   def buy
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)

@@ -19,12 +19,12 @@
       </svg>
       <span class="text-xs text-gray-600">Explore</span>
     </a>
-    <a href="#" class="flex flex-col items-center space-y-1">
+    <%= link_to more_path, class: "flex flex-col items-center space-y-1", data: { turbo_frame: "market_data" } do %>
       <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
       </svg>
       <span class="text-xs text-gray-600">More</span>
-    </a>
+    <% end %>
   </div>
 </nav>
 

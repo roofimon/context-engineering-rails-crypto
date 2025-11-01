@@ -22,6 +22,9 @@ Rails.application.routes.draw do
   # Activities/Transaction history
   get "activities", to: "cryptos#activities", as: :activities
 
+  # More menu
+  get "more", to: "cryptos#more", as: :more
+
   # PIN authentication routes
   resources :pins, only: [:new, :create, :destroy]
   delete "logout", to: "pins#destroy", as: :logout
