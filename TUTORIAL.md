@@ -1,6 +1,6 @@
 # Building a Cryptocurrency Asset Tracker with Rails 8 and Tailwind CSS
 
-This tutorial documents the complete implementation of a cryptocurrency asset tracking application built with Rails 8, Tailwind CSS, and Turbo Frames. The application features real-time price tracking, buy order management, transaction history, and a modern, responsive UI.
+This tutorial documents the complete implementation of a cryptocurrency asset tracking application built with Rails 8, Tailwind CSS, and Turbo Frames. The application features real-time price tracking, buy order management, transaction history, PIN-based authentication, and a modern, responsive UI.
 
 ## Table of Contents
 
@@ -10,7 +10,8 @@ This tutorial documents the complete implementation of a cryptocurrency asset tr
 4. [Building the Buy Form with Validation](#4-building-the-buy-form-with-validation)
 5. [Adding Transaction History](#5-adding-transaction-history)
 6. [Creating a Confirmation Page](#6-creating-a-confirmation-page)
-7. [Code Formatting and Best Practices](#7-code-formatting-and-best-practices)
+7. [Implementing PIN Authentication](#7-implementing-pin-authentication)
+8. [Code Formatting and Best Practices](#8-code-formatting-and-best-practices)
 
 ---
 
@@ -413,10 +414,11 @@ Added "Activities" link to bottom navigation:
 
 ### 6.1 Confirmation Flow
 
-The buy process now has three steps:
+The buy process now has four steps:
 1. **Buy Form** → Enter units
 2. **Confirmation Page** → Review order summary
-3. **Order Created** → Stored in session
+3. **PIN Verification** → Enter PIN to authorize order
+4. **Order Created** → Stored in session
 
 ### 6.2 Confirmation Action
 
@@ -462,14 +464,14 @@ Displays order summary with:
       <p class="text-xl font-bold">$<%= format_price(@total_cost) %></p>
     </div>
     
-    <%= form_with url: create_order_path(symbol: @asset[:symbol]), 
+    <%= form_with url: verify_order_pin_path(symbol: @asset[:symbol]), 
                   method: :post,
                   data: { turbo_frame: "_top" } do |f| %>
       <%= f.hidden_field :units, value: @units %>
       <%= f.hidden_field :market_price, value: @market_price %>
       <%= link_to "Cancel", buy_crypto_path(@asset[:symbol]),
           data: { turbo_frame: "market_data" } %>
-      <%= f.submit "Confirm Buy" %>
+      <%= f.submit "Confirm" %>
     <% end %>
   </div>
 <% end %>
@@ -477,19 +479,29 @@ Displays order summary with:
 
 ### 6.4 Creating Orders
 
+After PIN verification, the order is created:
+
 ```ruby
 def create_order
-  # Validation (same as before)
+  # Get pending order from session (stored during PIN verification step)
+  pending_order = session[:pending_order]
   
+  # Verify PIN (PIN verification happens here)
+  # ... PIN validation code ...
+  
+  # Create order from pending order data
   order = {
-    "symbol" => symbol.upcase,
-    "units" => units,
-    "price" => market_price,
+    "symbol" => pending_order["symbol"],
+    "units" => pending_order["units"],
+    "price" => pending_order["market_price"],
     "timestamp" => Time.current.to_s
   }
   
   session[:orders] ||= []
   session[:orders] << order
+  
+  # Clear pending order
+  session.delete(:pending_order)
   
   redirect_to root_path, notice: "Buy order placed for #{asset[:name]}"
 end
@@ -497,9 +509,235 @@ end
 
 ---
 
-## 7. Code Formatting and Best Practices
+## 7. Implementing PIN Authentication
 
-### 7.1 Using Rubocop
+### 7.1 Overview
+
+We implemented a PIN-based authentication system that:
+- Requires PIN entry for initial login
+- Verifies PIN before creating buy orders
+- Provides logout functionality to clear session
+
+### 7.2 Setting Up PIN Routes
+
+```ruby
+# config/routes.rb
+Rails.application.routes.draw do
+  # ... existing routes ...
+  
+  # PIN authentication routes
+  resources :pins, only: [:new, :create, :destroy]
+  delete "logout", to: "pins#destroy", as: :logout
+end
+```
+
+### 7.3 PIN Controller
+
+Created `PinsController` to handle authentication:
+
+```ruby
+class PinsController < ApplicationController
+  skip_before_action :check_login_status, only: [:new, :create]
+
+  CORRECT_PIN = "1111"
+
+  def new
+    # Redirect to home if already logged in
+    if session[:is_logged_in]
+      redirect_to root_path
+      return
+    end
+  end
+
+  def create
+    pin = params[:pin]
+
+    # Validation
+    if pin.blank? || pin.length != 4 || !pin.match?(/\A\d{4}\z/)
+      flash.now[:alert] = "PIN must be exactly 4 digits"
+      render :new, status: :unprocessable_entity
+      return
+    end
+
+    # Validate PIN against correct PIN
+    if pin != CORRECT_PIN
+      flash.now[:alert] = "Incorrect PIN. Please try again."
+      render :new, status: :unprocessable_entity
+      return
+    end
+
+    # Set session when PIN is correct
+    session[:is_logged_in] = true
+
+    redirect_to root_path, notice: "PIN verified successfully"
+  end
+
+  def destroy
+    # Reset entire session (clears all session data)
+    reset_session
+    
+    redirect_to new_pin_path, notice: "Logged out successfully"
+  end
+end
+```
+
+### 7.4 Application Controller Authentication
+
+Added login check in `ApplicationController`:
+
+```ruby
+class ApplicationController < ActionController::Base
+  before_action :check_login_status
+
+  private
+
+  def check_login_status
+    # Skip login check for pin routes and health check
+    return if controller_name == "pins" || controller_path == "rails/health"
+
+    # Redirect to pin page if not logged in
+    unless session[:is_logged_in]
+      redirect_to new_pin_path
+    end
+  end
+end
+```
+
+### 7.5 PIN Entry Interface
+
+Created a custom PIN entry view with JavaScript controller:
+
+**View Features:**
+- 4-digit PIN entry with visual dots
+- Numeric keypad (0-9)
+- Clear and backspace buttons
+- Real-time PIN validation
+- Error message display
+
+**JavaScript Controller (`pin_controller.js`):**
+- Handles keypad button clicks
+- Updates PIN input and visual dots
+- Validates PIN length
+- Auto-submits when 4 digits are entered
+- Handles clear and backspace actions
+
+### 7.6 PIN Verification for Orders
+
+After the confirmation page, users must verify their PIN before the order is created:
+
+**Updated Flow:**
+1. User fills buy form → submits → sees confirmation page
+2. User clicks "Confirm" → redirected to PIN verification page
+3. User enters PIN → order is created only if PIN is correct
+
+**Controller Implementation:**
+
+```ruby
+# In CryptosController
+
+def verify_order_pin
+  # Handle POST requests - store order and redirect to GET
+  if request.post?
+    symbol = params[:symbol]
+    @asset = find_asset_by_symbol(symbol)
+
+    # Validate and store pending order in session
+    session[:pending_order] = {
+      "symbol" => symbol.upcase,
+      "units" => units,
+      "market_price" => market_price,
+      "total_cost" => units * market_price
+    }
+
+    # Redirect to GET version to show the PIN page
+    redirect_to verify_order_pin_path(symbol: symbol)
+    return
+  end
+
+  # Handle GET requests - show PIN verification page
+  pending_order = session[:pending_order]
+  @asset = find_asset_by_symbol(pending_order["symbol"])
+  @units = pending_order["units"]
+  @market_price = pending_order["market_price"]
+  @total_cost = pending_order["total_cost"]
+end
+
+def create_order
+  # Get pending order from session
+  pending_order = session[:pending_order]
+
+  # Verify PIN
+  pin = params[:pin]
+  if pin != PinsController::CORRECT_PIN
+    flash[:alert] = "Incorrect PIN. Please try again."
+    redirect_to verify_order_pin_path(symbol: pending_order["symbol"])
+    return
+  end
+
+  # PIN is correct, create the order
+  order = {
+    "symbol" => pending_order["symbol"],
+    "units" => pending_order["units"],
+    "price" => pending_order["market_price"],
+    "timestamp" => Time.current.to_s
+  }
+
+  session[:orders] ||= []
+  session[:orders] << order
+
+  # Clear pending order
+  session.delete(:pending_order)
+
+  redirect_to root_path, notice: "Buy order placed successfully"
+end
+```
+
+### 7.7 Routes for Order PIN Verification
+
+```ruby
+# config/routes.rb
+get "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin", as: :verify_order_pin
+post "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin"
+```
+
+### 7.8 Logout Button
+
+Added logout functionality to the main page header:
+
+```erb
+<!-- In index.html.erb header -->
+<%= button_to logout_path, method: :delete, 
+    class: "flex items-center space-x-2 px-4 py-2..." do %>
+  <svg><!-- Logout icon --></svg>
+  <span>Logout</span>
+<% end %>
+```
+
+### 7.9 Session Management
+
+**Rails Cookie Store (Default):**
+- Sessions are stored in encrypted cookies
+- Data persists across server restarts
+- Limited by cookie size (~4KB)
+- Perfect for storing login status and orders
+
+**Session Data Structure:**
+```ruby
+session[:is_logged_in] = true           # Login status
+session[:orders] = [...]                # Array of completed orders
+session[:pending_order] = {...}         # Temporary order waiting for PIN
+```
+
+**Resetting Session:**
+```ruby
+reset_session  # Clears all session data
+```
+
+---
+
+## 8. Code Formatting and Best Practices
+
+### 8.1 Using Rubocop
 
 We used Rubocop to ensure consistent code style:
 
@@ -512,14 +750,14 @@ rubocop -a  # Auto-fix offenses
 - Proper spacing
 - Standard Ruby conventions
 
-### 7.2 Partial Organization
+### 8.2 Partial Organization
 
 We separated views into partials for better organization:
 
 - `_mobile_card.html.erb` - Mobile card view
 - `_bottom_navigation.html.erb` - Bottom navigation bar
 
-### 7.3 Key Best Practices Applied
+### 8.3 Key Best Practices Applied
 
 1. **Separation of Concerns:**
    - Controller handles business logic
@@ -560,6 +798,7 @@ This tutorial covered:
 ✅ **Form Validation** - Both client-side (Stimulus) and server-side (Rails)  
 ✅ **Transaction Management** - Session-based order storage and history  
 ✅ **Confirmation Flow** - Order review before final submission  
+✅ **PIN Authentication** - Secure login and order verification with PIN  
 ✅ **Code Quality** - Consistent formatting and best practices  
 
 The application demonstrates modern Rails development practices, combining the power of Turbo, Stimulus, and Tailwind CSS to create a fast, responsive, and user-friendly interface.
