@@ -3,7 +3,12 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["pinInput", "pinDots", "errorMessage", "form"]
 
+  connect() {
+    console.log("Pin controller connected")
+  }
+
   handleKeyPress(event) {
+    console.log("handleKeyPress called", event.target.dataset.key)
     const key = event.target.dataset.key
     
     if (key === "backspace") {
@@ -16,6 +21,7 @@ export default class extends Controller {
   }
 
   handleDigit(digit) {
+    console.log("handleDigit", digit, "pinInputTarget", this.pinInputTarget)
     this.addDigit(this.pinInputTarget, this.pinDotsTarget, digit)
     
     // Auto submit when 4 digits are entered
