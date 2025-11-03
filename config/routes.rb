@@ -25,6 +25,9 @@ Rails.application.routes.draw do
   # More menu
   get "more", to: "cryptos#more", as: :more
 
+  # Wallet page
+  get "wallet", to: "cryptos#wallet", as: :wallet
+
   # PIN authentication routes
   resources :pins, only: [:new, :create, :destroy]
   delete "logout", to: "pins#destroy", as: :logout

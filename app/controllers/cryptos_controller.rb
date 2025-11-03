@@ -3,6 +3,10 @@ class CryptosController < ApplicationController
     @assets = index_assets
   end
 
+  def wallet
+    @assets = index_assets
+  end
+
   def activities
     @orders = session[:orders] || []
     # Sort orders by timestamp, most recent first
