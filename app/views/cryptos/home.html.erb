@@ -19,7 +19,8 @@
             <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Asset</th>
             <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Binance</th>
             <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Coinbase</th>
-            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Average Price</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">24h Change</th>
             <th class="text-center py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Graph</th>
           </tr>
         </thead>
@@ -67,6 +68,13 @@
               <td class="py-5 px-4 text-right">
                 <span class="text-base font-semibold text-gray-900">
                   $<%= format_price(asset[:overall_price]) %>
+                </span>
+              </td>
+
+              <!-- 24h Change -->
+              <td class="py-5 px-4 text-right">
+                <span class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                  <%= asset[:change] >= 0 ? '+' : '' %><%= format_change(asset[:change]) %>%
                 </span>
               </td>
 
