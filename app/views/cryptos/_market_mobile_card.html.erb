@@ -1,0 +1,47 @@
+<div class="md:hidden space-y-4">
+  <% @assets.each do |asset| %>
+    <div class="bg-white border border-gray-200 rounded-lg p-4">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center">
+            <span class="text-white text-xs font-semibold"><%= asset[:icon] %></span>
+          </div>
+          <div>
+            <div class="text-base font-medium text-gray-900"><%= asset[:name] %></div>
+            <%= link_to asset[:symbol],
+                buy_crypto_path(asset[:symbol]),
+                class: "text-sm text-gray-500 hover:text-blue-600 cursor-pointer",
+                data: { turbo_frame: "market_data" } %>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-lg font-semibold text-gray-900">
+            $<%= format_price(asset[:overall_price]) %>
+          </div>
+          <canvas id="mobile-chart-<%= asset[:symbol] %>" width="80" height="40" class="mt-2"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <% %w[Binance Coinbase].each do |exchange| %>
+          <% data = asset[:exchanges][exchange] %>
+          <% if data && data[:price] %>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-600"><%= exchange %></span>
+              <div class="flex items-center space-x-1">
+                <% if data[:change] == :up %>
+                  <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                <% elsif data[:change] == :down %>
+                  <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                <% end %>
+                <span class="text-sm text-gray-900 font-medium">
+                  $<%= format_price(data[:price]) %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

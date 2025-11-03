@@ -1,0 +1,164 @@
+<% content_for :title, "Market Prices - Store" %>
+
+<div class="min-h-screen bg-white">
+  <!-- Header -->
+  <header class="border-b border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-6">
+      <h1 class="text-3xl font-bold text-gray-900">Market Prices</h1>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <%= turbo_frame_tag "market_data" do %>
+      <!-- Desktop Table View -->
+      <div class="hidden md:block overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Asset</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Binance</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Coinbase</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+            <th class="text-center py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Graph</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @assets.each do |asset| %>
+            <tr class="hover:bg-gray-50 transition-colors">
+              <!-- Asset Column -->
+              <td class="py-5 px-4">
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0 w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                    <span class="text-white text-xs font-semibold"><%= asset[:icon] %></span>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900"><%= asset[:name] %></div>
+                    <%= link_to asset[:symbol],
+                        buy_crypto_path(asset[:symbol]),
+                        class: "text-sm text-gray-500 hover:text-blue-600 cursor-pointer",
+                        data: { turbo_frame: "market_data" } %>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Exchange Prices -->
+              <% %w[Binance Coinbase].each do |exchange| %>
+                <td class="py-5 px-4 text-right">
+                  <% if asset[:exchanges][exchange] && asset[:exchanges][exchange][:price] %>
+                    <div class="flex items-center justify-end space-x-2">
+                      <% change = asset[:exchanges][exchange][:change] %>
+                      <% if change == :up %>
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                      <% elsif change == :down %>
+                        <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                      <% end %>
+                      <span class="text-sm text-gray-900 font-medium">
+                        $<%= format_price(asset[:exchanges][exchange][:price]) %>
+                      </span>
+                    </div>
+                  <% else %>
+                    <span class="text-sm text-gray-400">—</span>
+                  <% end %>
+                </td>
+              <% end %>
+
+              <!-- Overall Price -->
+              <td class="py-5 px-4 text-right">
+                <span class="text-base font-semibold text-gray-900">
+                  $<%= format_price(asset[:overall_price]) %>
+                </span>
+              </td>
+
+              <!-- Graph -->
+              <td class="py-5 px-4 text-center">
+                <canvas id="chart-<%= asset[:symbol] %>" width="100" height="40"></canvas>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <%= render "market_mobile_card" %>
+    <% end %>
+  </main>
+
+  <%= render "bottom_navigation" %>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  <% @assets.each do |asset| %>
+    const ctx = document.getElementById('chart-<%= asset[:symbol] %>');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7'],
+          datasets: [{
+            data: <%= asset[:price_history].to_json %>,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              display: false
+            },
+            y: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+    const mobileCtx = document.getElementById('mobile-chart-<%= asset[:symbol] %>');
+    if (mobileCtx) {
+      new Chart(mobileCtx, {
+        type: 'line',
+        data: {
+          labels: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7'],
+          datasets: [{
+            data: <%= asset[:price_history].to_json %>,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            x: {
+              display: false
+            },
+            y: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+  <% end %>
+});
+</script>

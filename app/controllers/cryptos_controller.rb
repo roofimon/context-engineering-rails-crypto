@@ -1,4 +1,13 @@
 class CryptosController < ApplicationController
+  def home
+    @assets = index_assets
+    @assets.each do |asset|
+      base_price = asset[:overall_price]
+      # Generate fake 7-day price history
+      asset[:price_history] = 7.times.map { |i| base_price * (0.9 + rand * 0.2) }.sort_by { |p| rand }
+    end
+  end
+
   def index
     @assets = index_assets
   end
