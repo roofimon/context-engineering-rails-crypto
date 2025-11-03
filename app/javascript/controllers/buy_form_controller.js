@@ -4,11 +4,15 @@ export default class extends Controller {
   static targets = ["units", "marketPrice", "estimatedCost", "unitsError"]
 
   connect() {
+    console.log("Buy form controller connected")
+    console.log("Buy form targets:", this.targets)
+    
     // Ensure calculation runs after DOM is ready
     this.calculate()
     
     // Also listen for Turbo Frame loads
     this.element.addEventListener("turbo:frame-load", () => {
+      console.log("Turbo frame loaded in buy form")
       this.calculate()
     })
   }
