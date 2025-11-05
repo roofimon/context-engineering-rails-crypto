@@ -3,6 +3,10 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import PinController from "controllers/pin_controller"
 import { application } from "controllers/application"
+import ApexCharts from "apexcharts"
+
+// Make ApexCharts available globally
+window.ApexCharts = ApexCharts
 
 console.log("JavaScript application initialized")
 console.log("Turbo Rails loaded")
