@@ -28,6 +28,9 @@ Rails.application.routes.draw do
   # Wallet page
   get "wallet", to: "cryptos#wallet", as: :wallet
 
+  # Market Trend page
+  get "market_trend", to: "cryptos#market_trend", as: :market_trend
+
   # PIN authentication routes
   resources :pins, only: [:new, :create, :destroy]
   delete "logout", to: "pins#destroy", as: :logout

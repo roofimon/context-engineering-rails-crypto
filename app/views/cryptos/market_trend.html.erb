@@ -1,0 +1,270 @@
+<% content_for :title, "Market Trend - Store" %>
+
+<div class="min-h-screen bg-white">
+  <!-- Header -->
+  <header class="border-b border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Market Trend</h1>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1">7-day price history</p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+    <%= turbo_frame_tag "market_data" do %>
+      <div class="space-y-4 sm:space-y-8">
+        <% @assets.each do |asset| %>
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-0">
+            <!-- Asset Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
+              <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black flex items-center justify-center">
+                  <span class="text-white text-xs sm:text-sm font-semibold"><%= asset[:icon] %></span>
+                </div>
+                <div>
+                  <h3 class="text-lg sm:text-xl font-semibold text-gray-900"><%= asset[:name] %></h3>
+                  <p class="text-xs sm:text-sm text-gray-500"><%= asset[:symbol] %></p>
+                </div>
+              </div>
+              <div class="text-left sm:text-right">
+                <p class="text-xl sm:text-2xl font-bold text-gray-900">$<%= format_price(asset[:overall_price]) %></p>
+                <p class="text-xs sm:text-sm font-medium text-green-600">+<%= format_change(asset[:change]) %>%</p>
+              </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div id="chart-<%= asset[:symbol] %>" class="w-full overflow-hidden" style="height: 250px; min-height: 250px;">
+              <div id="status-<%= asset[:symbol] %>" class="p-3 sm:p-4 bg-yellow-100 text-xs sm:text-sm">
+                <strong>Status:</strong> <span id="status-text-<%= asset[:symbol] %>">Waiting for script...</span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Script MUST be inside turbo_frame_tag to run when frame loads -->
+      <script>
+// Test if script runs at all
+console.log('=== MARKET TREND SCRIPT LOADED ===');
+console.log('STEP 1: Market Trend script is running!');
+
+// Update status on page
+function updateStatus(symbol, message) {
+  const statusEl = document.getElementById('status-text-' + symbol);
+  if (statusEl) {
+    statusEl.textContent = message;
+    console.log('Status for ' + symbol + ':', message);
+  }
+}
+
+console.log('=== STEP 1: Script started ===');
+
+// Prepare asset data
+const assetsData = [
+<% @assets.each do |asset| %>
+  {
+    symbol: '<%= j(asset[:symbol]) %>',
+    name: '<%= j(asset[:name]) %>',
+    dates: <%= raw asset[:dates].to_json %>,
+    prices: <%= raw asset[:price_history].to_json %>
+  },
+<% end %>
+];
+
+// STEP 2: Check if ApexCharts is loaded
+console.log('STEP 2: Checking for ApexCharts...');
+console.log('=== STEP 2: Checking ApexCharts ===');
+console.log('window.ApexCharts:', window.ApexCharts);
+console.log('typeof window.ApexCharts:', typeof window.ApexCharts);
+
+assetsData.forEach(function(asset) {
+  updateStatus(asset.symbol, 'Checking ApexCharts...');
+});
+
+// Wait for ApexCharts to be available
+function waitForApexChartsAndCreate() {
+  if (window.ApexCharts && typeof window.ApexCharts === 'function') {
+    console.log('STEP 2 SUCCESS: ApexCharts is available!');
+    console.log('✅ STEP 2 SUCCESS: ApexCharts is available');
+    console.log('ApexCharts type:', typeof window.ApexCharts);
+    
+    assetsData.forEach(function(asset) {
+      updateStatus(asset.symbol, 'ApexCharts ready, creating chart...');
+    });
+    
+    // STEP 3: Create charts
+    setTimeout(function() {
+      console.log('STEP 3: Starting to create charts...');
+      console.log('=== STEP 3: Creating charts ===');
+      createAllCharts();
+    }, 100);
+  } else {
+    console.log('⏳ ApexCharts not ready yet, waiting...');
+    setTimeout(waitForApexChartsAndCreate, 100);
+  }
+}
+
+// Start waiting
+waitForApexChartsAndCreate();
+
+// STEP 3: Create charts function
+function createAllCharts() {
+  console.log('=== STEP 3: Starting chart creation ===');
+  
+  // Check ApexCharts is available
+  if (!window.ApexCharts) {
+    console.error('❌ STEP 3 FAILED: ApexCharts not available');
+    console.log('window.ApexCharts:', window.ApexCharts);
+    return;
+  }
+  console.log('✅ STEP 3a: ApexCharts is available');
+
+  assetsData.forEach(function(asset) {
+    // Chart for asset
+    console.log('=== Creating chart for ' + asset.symbol + ' ===');
+    updateStatus(asset.symbol, 'Creating chart for ' + asset.symbol + '...');
+    
+    // STEP 3b: Find element
+    const elementId = 'chart-' + asset.symbol;
+    const chartElement = document.getElementById(elementId);
+    console.log('STEP 3b: Looking for element:', elementId);
+    
+    if (!chartElement) {
+      console.error('STEP 3b FAILED for ' + asset.symbol + ': Element not found!');
+      console.error('❌ STEP 3b FAILED: Element not found:', elementId);
+      updateStatus(asset.symbol, 'ERROR: Element not found');
+      return;
+    }
+    console.log('✅ STEP 3b: Element found:', chartElement);
+    updateStatus(asset.symbol, 'Element found, preparing data...');
+
+    // STEP 3c: Prepare data
+    console.log('STEP 3c: Preparing data...');
+    const dates = asset.dates;
+    const prices = asset.prices;
+    console.log('Dates:', dates);
+    console.log('Prices:', prices);
+    console.log('✅ STEP 3c: Data prepared');
+    updateStatus(asset.symbol, 'Data ready (' + prices.length + ' points)');
+
+    // STEP 3d: Create chart options
+    console.log('STEP 3d: Creating chart options...');
+    const options = {
+      series: [{
+        name: asset.symbol,
+        data: prices
+      }],
+      chart: {
+        type: 'line',
+        height: 250,
+        toolbar: { show: false }
+      },
+      xaxis: {
+        categories: dates
+      },
+      yaxis: {
+        labels: {
+          formatter: function(val) {
+            return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+          }
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: function(val) {
+            return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+          }
+        }
+      }
+    };
+    console.log('Options:', options);
+    console.log('✅ STEP 3d: Options created');
+    updateStatus(asset.symbol, 'Options created, creating chart instance...');
+
+    // STEP 3e: Create chart instance
+    console.log('STEP 3e: Creating chart instance...');
+    try {
+      const chart = new window.ApexCharts(chartElement, options);
+      console.log('✅ STEP 3e: Chart instance created:', chart);
+      updateStatus(asset.symbol, 'Chart instance created, rendering...');
+
+      // STEP 3f: Render chart
+      console.log('STEP 3f: Rendering chart...');
+      chart.render().then(function() {
+        console.log('STEP 3f SUCCESS: Chart rendered for ' + asset.symbol + '!');
+        console.log('✅ STEP 3f SUCCESS: Chart rendered for ' + asset.symbol);
+        updateStatus(asset.symbol, '✅ Chart rendered successfully!');
+        // Hide status after 2 seconds
+        setTimeout(function() {
+          const statusDiv = document.getElementById('status-' + asset.symbol);
+          if (statusDiv) statusDiv.style.display = 'none';
+        }, 2000);
+      }).catch(function(error) {
+        console.error('STEP 3f FAILED for ' + asset.symbol + ': ' + error.message);
+        console.error('❌ STEP 3f FAILED: Error rendering:', error);
+        updateStatus(asset.symbol, 'ERROR: ' + error.message);
+      });
+    } catch (error) {
+      console.error('STEP 3e FAILED for ' + asset.symbol + ': ' + error.message);
+      console.error('❌ STEP 3e FAILED: Error creating chart:', error);
+      console.error('Error details:', error.message, error.stack);
+      updateStatus(asset.symbol, 'ERROR: ' + error.message);
+    }
+  });
+  
+  console.log('=== STEP 3 COMPLETE ===');
+}
+
+// Initialize on page load
+console.log('=== Setting up event listeners ===');
+if (document.readyState === 'loading') {
+  console.log('Document loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded fired');
+    if (window.ApexCharts) {
+      createAllCharts();
+    }
+  });
+} else {
+  console.log('Document already loaded');
+  if (window.ApexCharts) {
+    createAllCharts();
+  }
+}
+
+// Initialize on Turbo Frame load (this is the key!)
+document.addEventListener('turbo:frame-load', function(event) {
+  console.log('Turbo frame loaded! Frame ID: ' + (event.target?.id || 'unknown'));
+  console.log('=== Turbo frame load event ===');
+  console.log('Frame ID:', event.target?.id);
+  
+  if (event.target.id === 'market_data') {
+    console.log('✅ Market data frame loaded, initializing charts...');
+    console.log('Market data frame detected! Starting chart creation...');
+    
+    // Wait a bit for DOM to be ready
+    setTimeout(function() {
+      waitForApexChartsAndCreate();
+    }, 300);
+  }
+});
+
+// Also try on turbo:load
+document.addEventListener('turbo:load', function() {
+  console.log('turbo:load event fired');
+  setTimeout(waitForApexChartsAndCreate, 300);
+});
+
+console.log('=== Setup complete ===');
+console.log('Script setup complete!');
+</script>
+    <% end %>
+  </main>
+
+  <%= render "bottom_navigation" %>
+</div>
+
+<% content_for :head do %>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.47.0/dist/apexcharts.min.js"></script>
+<% end %>
+

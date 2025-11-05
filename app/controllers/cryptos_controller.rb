@@ -26,6 +26,17 @@ class CryptosController < ApplicationController
     # Menu page with additional options
   end
 
+  def market_trend
+    @assets = index_assets
+    @assets.each do |asset|
+      base_price = asset[:overall_price]
+      # Generate fake 7-day price history for trend analysis
+      asset[:price_history] = 7.times.map { |i| base_price * (0.85 + rand * 0.3) }.sort_by { |p| rand }
+      # Generate dates for the last 7 days
+      asset[:dates] = 7.times.map { |i| (Date.today - (6 - i)).strftime("%m/%d") }
+    end
+  end
+
   def buy
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)
