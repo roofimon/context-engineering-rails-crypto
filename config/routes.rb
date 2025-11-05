@@ -10,7 +10,13 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  root "cryptos#home"
+  root "market_data#home"
+
+  # Market Data routes (menu pages)
+  get "activities", to: "market_data#activities", as: :activities
+  get "more", to: "market_data#more", as: :more
+  get "wallet", to: "market_data#wallet", as: :wallet
+  get "market_trend", to: "market_data#market_trend", as: :market_trend
 
   # Buy crypto routes
   get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto
@@ -18,18 +24,6 @@ Rails.application.routes.draw do
   get "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin", as: :verify_order_pin
   post "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin"
   post "cryptos/:symbol/buy", to: "cryptos#create_order", as: :create_order
-
-  # Activities/Transaction history
-  get "activities", to: "cryptos#activities", as: :activities
-
-  # More menu
-  get "more", to: "cryptos#more", as: :more
-
-  # Wallet page
-  get "wallet", to: "cryptos#wallet", as: :wallet
-
-  # Market Trend page
-  get "market_trend", to: "cryptos#market_trend", as: :market_trend
 
   # PIN authentication routes
   resources :pins, only: [:new, :create, :destroy]

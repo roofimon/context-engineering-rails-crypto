@@ -1,57 +1,22 @@
 class CryptosController < ApplicationController
-  def home
-    @assets = index_assets
-    @assets.each do |asset|
-      base_price = asset[:overall_price]
-      # Generate fake 7-day price history
-      asset[:price_history] = 7.times.map { |i| base_price * (0.9 + rand * 0.2) }.sort_by { |p| rand }
-    end
-  end
+  include AssetHelper
 
-  def index
-    @assets = index_assets
-  end
+  # ============================================================================
+  # BUY FLOW (crypto purchase workflow)
+  # ============================================================================
 
-  def wallet
-    @assets = index_assets
-  end
-
-  def activities
-    @orders = session[:orders] || []
-    # Sort orders by timestamp, most recent first
-    @orders = @orders.sort_by { |order| order["timestamp"] }.reverse
-  end
-
-  def more
-    # Menu page with additional options
-  end
-
-  def market_trend
-    @assets = index_assets
-    @assets.each do |asset|
-      base_price = asset[:overall_price]
-      # Generate fake 30-day candlestick data (OHLC format)
-      asset[:candlestick_data] = 30.times.map do |i|
-        open_price = base_price * (0.85 + rand * 0.3)
-        close_price = open_price * (0.95 + rand * 0.1)
-        high_price = [open_price, close_price].max * (1.0 + rand * 0.05)
-        low_price = [open_price, close_price].min * (0.95 - rand * 0.05)
-        [open_price, high_price, low_price, close_price]
-      end
-      # Generate dates for the last 30 days
-      asset[:dates] = 30.times.map { |i| (Date.today - (29 - i)).strftime("%m/%d") }
-    end
-  end
-
+  # Step 1: Buy form - Enter units
   def buy
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)
 
     unless @asset
       redirect_to root_path, alert: "Asset not found"
+      return
     end
   end
 
+  # Step 2: Confirm order - Review summary
   def confirm
     symbol = params[:symbol]
     @asset = find_asset_by_symbol(symbol)
@@ -84,6 +49,7 @@ class CryptosController < ApplicationController
     @total_cost = @units * @market_price
   end
 
+  # Step 3: Verify PIN - Authorize order
   def verify_order_pin
     # Handle POST requests - store order and redirect to GET
     if request.post?
@@ -147,6 +113,7 @@ class CryptosController < ApplicationController
     @total_cost = pending_order["total_cost"]
   end
 
+  # Step 4: Create order - Store in session
   def create_order
     # Get pending order from session
     pending_order = session[:pending_order]
@@ -196,102 +163,4 @@ class CryptosController < ApplicationController
     redirect_to root_path, notice: "Buy order placed for #{asset[:name]} (#{asset[:symbol]})"
   end
 
-  private
-
-  def find_asset_by_symbol(symbol)
-    @assets ||= index_assets
-    @assets.find { |a| a[:symbol] == symbol.upcase }
-  end
-
-  def index_assets
-    base_assets = [
-      {
-        name: "Bitcoin",
-        symbol: "BTC",
-        icon: "₿",
-        initial_quantity: 2.5,
-        exchanges: {
-          "Binance" => { price: 94245.32, change: nil },
-          "Coinbase" => { price: 94312.03, change: nil }
-        },
-        overall_price: 94245.50,
-        change: 1.25
-      },
-      {
-        name: "Ethereum",
-        symbol: "ETH",
-        icon: "Ξ",
-        initial_quantity: 10.25,
-        exchanges: {
-          "Binance" => { price: 6032.15, change: :up },
-          "Coinbase" => { price: 5998.71, change: :down }
-        },
-        overall_price: 6018.42,
-        change: 1.25
-      },
-      {
-        name: "Binance",
-        symbol: "BNB",
-        icon: "BNB",
-        initial_quantity: 5.0,
-        exchanges: {
-          "Binance" => { price: 2789.01, change: nil },
-          "Coinbase" => { price: 2708.75, change: :down }
-        },
-        overall_price: 2781.28,
-        change: 0.75
-      },
-      {
-        name: "Cardano",
-        symbol: "ADA",
-        icon: "ADA",
-        initial_quantity: 500.0,
-        exchanges: {
-          "Binance" => { price: 4.02, change: nil },
-          "Coinbase" => { price: 3.98, change: :down }
-        },
-        overall_price: 4.08,
-        change: 2.28
-      },
-      {
-        name: "Solana",
-        symbol: "SOL",
-        icon: "SOL",
-        initial_quantity: 25.5,
-        exchanges: {
-          "Binance" => { price: 144.18, change: :down },
-          "Coinbase" => { price: 145.28, change: nil }
-        },
-        overall_price: 145.16,
-        change: 7.6
-      },
-      {
-        name: "Polkadot",
-        symbol: "DOT",
-        icon: "DOT",
-        initial_quantity: 100.0,
-        exchanges: {
-          "Binance" => { price: nil, change: nil },
-          "Coinbase" => { price: 69.45, change: nil }
-        },
-        overall_price: 69.02,
-        change: 7.6
-      }
-    ]
-
-    # Calculate current quantity based on orders
-    orders = session[:orders] || []
-
-    base_assets.map do |asset|
-      # Calculate total purchased units for this asset
-      purchased_units = orders
-                        .select { |order| order["symbol"] == asset[:symbol] }
-                        .sum { |order| order["units"].to_f }
-
-      # Current quantity = initial quantity + purchased units
-      current_quantity = asset[:initial_quantity] + purchased_units
-
-      asset.merge(quantity: current_quantity)
-    end
-  end
 end
