@@ -4,78 +4,57 @@ module AssetHelper
   private
 
   def index_assets
+    # Use time-based seed for consistency within a request
+    seed = Time.now.to_i / 3600 # Changes every hour
+    
     base_assets = [
       {
         name: "Bitcoin",
         symbol: "BTC",
         icon: "₿",
         initial_quantity: 2.5,
-        exchanges: {
-          "Binance" => { price: 94245.32, change: nil },
-          "Coinbase" => { price: 94312.03, change: nil }
-        },
-        overall_price: 94245.50,
-        change: 1.25
+        base_price: 94250.0,
+        volatility: 0.02 # 2% volatility
       },
       {
         name: "Ethereum",
         symbol: "ETH",
         icon: "Ξ",
         initial_quantity: 10.25,
-        exchanges: {
-          "Binance" => { price: 6032.15, change: :up },
-          "Coinbase" => { price: 5998.71, change: :down }
-        },
-        overall_price: 6018.42,
-        change: 1.25
+        base_price: 6015.0,
+        volatility: 0.025 # 2.5% volatility
       },
       {
-        name: "Binance",
+        name: "Binance Coin",
         symbol: "BNB",
         icon: "BNB",
         initial_quantity: 5.0,
-        exchanges: {
-          "Binance" => { price: 2789.01, change: nil },
-          "Coinbase" => { price: 2708.75, change: :down }
-        },
-        overall_price: 2781.28,
-        change: 0.75
+        base_price: 2780.0,
+        volatility: 0.03 # 3% volatility
       },
       {
         name: "Cardano",
         symbol: "ADA",
         icon: "ADA",
         initial_quantity: 500.0,
-        exchanges: {
-          "Binance" => { price: 4.02, change: nil },
-          "Coinbase" => { price: 3.98, change: :down }
-        },
-        overall_price: 4.08,
-        change: 2.28
+        base_price: 4.00,
+        volatility: 0.04 # 4% volatility
       },
       {
         name: "Solana",
         symbol: "SOL",
         icon: "SOL",
         initial_quantity: 25.5,
-        exchanges: {
-          "Binance" => { price: 144.18, change: :down },
-          "Coinbase" => { price: 145.28, change: nil }
-        },
-        overall_price: 145.16,
-        change: 7.6
+        base_price: 145.0,
+        volatility: 0.035 # 3.5% volatility
       },
       {
         name: "Polkadot",
         symbol: "DOT",
         icon: "DOT",
         initial_quantity: 100.0,
-        exchanges: {
-          "Binance" => { price: nil, change: nil },
-          "Coinbase" => { price: 69.45, change: nil }
-        },
-        overall_price: 69.02,
-        change: 7.6
+        base_price: 69.0,
+        volatility: 0.04 # 4% volatility
       }
     ]
 
@@ -83,15 +62,49 @@ module AssetHelper
     orders = session[:orders] || []
 
     base_assets.map do |asset|
-      # Calculate total purchased units for this asset
+      # Generate realistic prices with hour-based variation
+      Random.srand(seed + asset[:symbol].hash)
+      
+      # Base price with small random variation (±0.5%)
+      current_base = asset[:base_price] * (0.995 + rand * 0.01)
+      
+      # 24h change: realistic range -8% to +12%
+      change_percent = (rand - 0.3) * 20 # Bias slightly positive
+      change_percent = [[change_percent, -8.0].max, 12.0].min
+      
+      # Exchange prices with realistic spreads (0.1% - 0.5%)
+      spread = 0.001 + rand * 0.004
+      binance_price = current_base * (1.0 - spread / 2)
+      coinbase_price = current_base * (1.0 + spread / 2)
+      
+      # Determine exchange price changes (small variations)
+      binance_change = rand < 0.5 ? :up : :down
+      coinbase_change = rand < 0.5 ? :up : :down
+      
+      # Calculate average price
+      avg_price = (binance_price + coinbase_price) / 2.0
+      
+      # Calculate current quantity
       purchased_units = orders
                         .select { |order| order["symbol"] == asset[:symbol] }
                         .sum { |order| order["units"].to_f }
-
-      # Current quantity = initial quantity + purchased units
       current_quantity = asset[:initial_quantity] + purchased_units
-
-      asset.merge(quantity: current_quantity)
+      
+      {
+        name: asset[:name],
+        symbol: asset[:symbol],
+        icon: asset[:icon],
+        initial_quantity: asset[:initial_quantity],
+        quantity: current_quantity,
+        exchanges: {
+          "Binance" => { price: binance_price.round(2), change: binance_change },
+          "Coinbase" => { price: coinbase_price.round(2), change: coinbase_change }
+        },
+        overall_price: avg_price.round(2),
+        change: change_percent.round(2),
+        base_price: asset[:base_price],
+        volatility: asset[:volatility]
+      }
     end
   end
 
