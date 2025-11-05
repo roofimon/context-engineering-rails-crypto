@@ -5,7 +5,7 @@
   <header class="border-b border-gray-200 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
       <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Market Trend</h1>
-      <p class="text-xs sm:text-sm text-gray-500 mt-1">7-day price history</p>
+      <p class="text-xs sm:text-sm text-gray-500 mt-1">30-day price history</p>
     </div>
   </header>
 
@@ -66,7 +66,7 @@ const assetsData = [
     symbol: '<%= j(asset[:symbol]) %>',
     name: '<%= j(asset[:name]) %>',
     dates: <%= raw asset[:dates].to_json %>,
-    prices: <%= raw asset[:price_history].to_json %>
+    candlestickData: <%= raw asset[:candlestick_data].to_json %>
   },
 <% end %>
 ];
@@ -141,39 +141,75 @@ function createAllCharts() {
     // STEP 3c: Prepare data
     console.log('STEP 3c: Preparing data...');
     const dates = asset.dates;
-    const prices = asset.prices;
+    const candlestickData = asset.candlestickData;
+    
+    // Format data for candlestick chart: [{x: date, y: [open, high, low, close]}]
+    const formattedData = dates.map(function(date, index) {
+      return {
+        x: date,
+        y: candlestickData[index] // [open, high, low, close]
+      };
+    });
+    
     console.log('Dates:', dates);
-    console.log('Prices:', prices);
+    console.log('Candlestick data:', formattedData);
     console.log('✅ STEP 3c: Data prepared');
-    updateStatus(asset.symbol, 'Data ready (' + prices.length + ' points)');
+    updateStatus(asset.symbol, 'Data ready (' + formattedData.length + ' candles)');
 
     // STEP 3d: Create chart options
     console.log('STEP 3d: Creating chart options...');
     const options = {
       series: [{
         name: asset.symbol,
-        data: prices
+        data: formattedData
       }],
       chart: {
-        type: 'line',
+        type: 'candlestick',
         height: 250,
         toolbar: { show: false }
       },
       xaxis: {
-        categories: dates
+        type: 'category',
+        labels: {
+          show: false
+        },
+        axisBorder: {
+          show: false
+        },
+        axisTicks: {
+          show: false
+        }
       },
       yaxis: {
         labels: {
           formatter: function(val) {
             return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+          },
+          style: { fontSize: '11px', colors: '#6B7280' }
+        }
+      },
+      plotOptions: {
+        candlestick: {
+          colors: {
+            upward: '#10B981',  // Green for bullish candles
+            downward: '#EF4444' // Red for bearish candles
           }
         }
       },
       tooltip: {
-        y: {
-          formatter: function(val) {
-            return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-          }
+        custom: function({seriesIndex, dataPointIndex, w}) {
+          const data = w.globals.seriesCandleData[seriesIndex][dataPointIndex];
+          const [open, high, low, close] = data;
+          const isUp = close >= open;
+          return '<div class="p-2">' +
+            '<div class="font-semibold">' + w.globals.categoryLabels[dataPointIndex] + '</div>' +
+            '<div class="text-sm">' +
+            '<div>Open: <span class="font-medium">$' + open.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+            '<div>High: <span class="font-medium">$' + high.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+            '<div>Low: <span class="font-medium">$' + low.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+            '<div>Close: <span class="font-medium ' + (isUp ? 'text-green-600' : 'text-red-600') + '">$' + close.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+            '</div>' +
+            '</div>';
         }
       }
     };
