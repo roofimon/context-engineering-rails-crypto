@@ -30,10 +30,10 @@ class CryptosController < ApplicationController
     @assets = index_assets
     @assets.each do |asset|
       base_price = asset[:overall_price]
-      # Generate fake 30-day price history for trend analysis
-      asset[:price_history] = 30.times.map { |i| base_price * (0.85 + rand * 0.3) }.sort_by { |p| rand }
-      # Generate dates for the last 30 days
-      asset[:dates] = 30.times.map { |i| (Date.today - (29 - i)).strftime("%m/%d") }
+      # Generate fake 7-day price history for trend analysis
+      asset[:price_history] = 7.times.map { |i| base_price * (0.85 + rand * 0.3) }.sort_by { |p| rand }
+      # Generate dates for the last 7 days
+      asset[:dates] = 7.times.map { |i| (Date.today - (6 - i)).strftime("%m/%d") }
     end
   end
 
