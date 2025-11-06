@@ -34,7 +34,7 @@
                     <span class="text-white text-xs font-semibold"><%= asset[:icon] %></span>
                   </div>
                   <div>
-                    <div class="text-sm font-medium text-gray-900"><%= asset[:name] %></div>
+                    <div class="text-sm font-medium text-gray-900" data-home-target="assetName"><%= asset[:name] %></div>
                     <%= link_to asset[:symbol],
                         buy_crypto_path(asset[:symbol]),
                         class: "text-sm text-gray-500 hover:text-blue-600 cursor-pointer",
