@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="market-api"
 // Example using free CoinGecko API
 export default class extends Controller {
-  static targets = ["price", "change", "assetName"]
+  static targets = ["price", "change", "assetName", "exchangePrice", "exchangeIndicator"]
   
   // Map your asset symbols to CoinGecko IDs
   static cryptoMapping = {
@@ -12,6 +12,15 @@ export default class extends Controller {
     'SOL': 'solana',
     'USDT': 'tether',
     'BNB': 'binancecoin'
+  }
+  
+  // Reverse mapping for looking up by CoinGecko ID
+  static reverseMapping = {
+    'bitcoin': 'BTC',
+    'ethereum': 'ETH',
+    'solana': 'SOL',
+    'tether': 'USDT',
+    'binancecoin': 'BNB'
   }
 
   connect() {
@@ -56,46 +65,83 @@ export default class extends Controller {
   }
 
   updatePricesFromAPI(apiData) {
-    // Update each asset with real data
-    this.assetNameTargets.forEach((nameElement) => {
-      const assetName = nameElement.textContent.trim()
+    // Iterate through CoinGecko data
+    Object.keys(apiData).forEach(coinGeckoId => {
+      const priceData = apiData[coinGeckoId]
+      const symbol = this.constructor.reverseMapping[coinGeckoId]
       
-      // Find the symbol for this asset
-      const symbol = this.findSymbolByName(assetName)
-      if (!symbol) return
+      if (!symbol || !priceData) return
       
-      const cryptoId = this.constructor.cryptoMapping[symbol]
-      const priceData = apiData[cryptoId]
+      const price = priceData.usd
+      const change24h = priceData.usd_24h_change
       
-      if (priceData) {
-        // Find price elements for this asset
-        const assetRow = nameElement.closest('tr, .bg-white')
+      // Update main price displays
+      this.priceTargets.forEach(priceElement => {
+        const assetRow = priceElement.closest('[data-crypto], tr')
         if (!assetRow) return
         
-        // Update price
-        const priceElements = assetRow.querySelectorAll('[data-market-api-target="price"]')
-        priceElements.forEach(el => {
-          const oldPrice = parseFloat(el.textContent.replace(/[$,]/g, ''))
-          const newPrice = priceData.usd
+        // Check if this price element is for the current crypto
+        const assetName = assetRow.querySelector('[data-market-api-target="assetName"]')?.textContent.trim()
+        const matchSymbol = this.findSymbolByName(assetName)
+        
+        if (matchSymbol === symbol) {
+          const oldPrice = parseFloat(priceElement.textContent.replace(/[$,]/g, ''))
+          priceElement.textContent = this.formatPrice(price)
           
-          el.textContent = this.formatPrice(newPrice)
-          
-          // Flash animation
-          if (!isNaN(oldPrice) && oldPrice !== newPrice) {
-            this.flashElement(el, newPrice > oldPrice)
+          if (!isNaN(oldPrice) && oldPrice !== price) {
+            this.flashElement(priceElement, price > oldPrice)
           }
-        })
-        
-        // Update 24h change
-        const changeElement = assetRow.querySelector('[data-market-api-target="change"]')
-        if (changeElement && priceData.usd_24h_change) {
-          const change = priceData.usd_24h_change
-          changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`
-          changeElement.className = `text-sm font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`
         }
+      })
+      
+      // Update exchange-specific prices (Binance & Coinbase columns)
+      this.exchangePriceTargets.forEach(exchangePriceElement => {
+        const td = exchangePriceElement.closest('td')
+        if (!td) return
         
-        console.log(`📊 Updated ${symbol}: $${priceData.usd} (${priceData.usd_24h_change?.toFixed(2)}%)`)
-      }
+        const cryptoSymbol = td.getAttribute('data-crypto')
+        const exchangeName = td.getAttribute('data-exchange')
+        
+        if (cryptoSymbol === symbol && exchangeName) {
+          const oldPrice = parseFloat(exchangePriceElement.textContent.replace(/[$,]/g, ''))
+          const newPrice = price
+          
+          // Add small variation between exchanges (simulate slight differences)
+          const variation = (Math.random() - 0.5) * 0.002 // ±0.2%
+          const adjustedPrice = newPrice * (1 + variation)
+          
+          exchangePriceElement.textContent = this.formatPrice(adjustedPrice)
+          
+          // Update indicator
+          const indicator = td.querySelector('[data-market-api-target="exchangeIndicator"]')
+          if (indicator && !isNaN(oldPrice)) {
+            const isUp = adjustedPrice > oldPrice
+            indicator.className = `w-2 h-2 rounded-full ${isUp ? 'bg-green-500' : 'bg-red-500'}`
+          }
+          
+          if (!isNaN(oldPrice) && oldPrice !== adjustedPrice) {
+            this.flashElement(exchangePriceElement, adjustedPrice > oldPrice)
+          }
+          
+          console.log(`💱 Updated ${exchangeName} ${symbol}: $${this.formatPrice(adjustedPrice)}`)
+        }
+      })
+      
+      // Update 24h change
+      this.changeTargets.forEach(changeElement => {
+        const assetRow = changeElement.closest('[data-crypto], tr, .bg-white')
+        if (!assetRow) return
+        
+        const assetName = assetRow.querySelector('[data-market-api-target="assetName"]')?.textContent.trim()
+        const matchSymbol = this.findSymbolByName(assetName)
+        
+        if (matchSymbol === symbol && change24h) {
+          changeElement.textContent = `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%`
+          changeElement.className = `text-sm font-medium ${change24h >= 0 ? 'text-green-600' : 'text-red-600'}`
+        }
+      })
+      
+      console.log(`📊 Updated ${symbol}: $${this.formatPrice(price)} (${change24h?.toFixed(2)}%)`)
     })
   }
 

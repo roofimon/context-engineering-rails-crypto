@@ -1,6 +1,6 @@
 <% content_for :title, "Market Prices - Store" %>
 
-<div class="min-h-screen bg-white" data-controller="home">
+<div class="min-h-screen bg-white" data-controller="market-api">
   <!-- Header -->
   <header class="border-b border-gray-200 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
@@ -45,17 +45,17 @@
 
               <!-- Exchange Prices -->
               <% %w[Binance Coinbase].each do |exchange| %>
-                <td class="py-5 px-4 text-right">
+                <td class="py-5 px-4 text-right" data-exchange="<%= exchange %>" data-crypto="<%= asset[:symbol] %>">
                   <% if asset[:exchanges][exchange] && asset[:exchanges][exchange][:price] %>
                     <div class="flex items-center justify-end space-x-2">
                       <% change = asset[:exchanges][exchange][:change] %>
                       <% if change == :up %>
-                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <div class="w-2 h-2 rounded-full bg-green-500" data-market-api-target="exchangeIndicator"></div>
                       <% elsif change == :down %>
-                        <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                        <div class="w-2 h-2 rounded-full bg-red-500" data-market-api-target="exchangeIndicator"></div>
                       <% end %>
-                      <span id="asset-price" class="text-sm text-gray-900 font-medium">
-                        $<%= format_price(asset[:exchanges][exchange][:price]) %>
+                      <span class="text-sm text-gray-900 font-medium">
+                        $<span data-market-api-target="exchangePrice"><%= format_price(asset[:exchanges][exchange][:price]) %></span>
                       </span>
                     </div>
                   <% else %>
