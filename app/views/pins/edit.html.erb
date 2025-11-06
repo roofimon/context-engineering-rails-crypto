@@ -1,46 +1,113 @@
 <%= turbo_frame_tag "market_data" do %>
-<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
-  <div class="max-w-md w-full mx-auto py-8 px-6">
-    <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Reset PIN</h2>
-        <%= link_to more_path, class: "text-gray-400 hover:text-gray-600" do %>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        <% end %>
+  <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" data-controller="reset-pin">
+    <!-- Flash Messages -->
+    <% if flash[:alert] %>
+      <div class="px-4 pt-4">
+        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800 text-center"><%= flash[:alert] %></p>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Error Message (for JS) -->
+    <div data-reset-pin-target="errorMessage" class="hidden px-4 pt-4">
+      <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm text-red-800 text-center"></p>
+      </div>
+    </div>
+
+    <!-- Close Button -->
+    <div class="px-4 pt-4">
+      <%= link_to more_path, data: { turbo_frame: "market_data" }, class: "inline-flex items-center text-gray-600 hover:text-gray-900" do %>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        <span class="ml-1 text-sm font-medium">Back</span>
+      <% end %>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col items-center justify-center px-6 py-8">
+      <!-- Header -->
+      <div class="text-center mb-12">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2" data-reset-pin-target="header">Enter Current PIN</h1>
+        <p class="text-gray-500 text-sm" data-reset-pin-target="subheader">Enter your current 4-digit PIN</p>
       </div>
 
-      <% if flash[:alert] %>
-        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-          <%= flash[:alert] %>
-        </div>
-      <% end %>
+      <%= form_with url: update_pin_path, method: :patch, local: true, class: "w-full max-w-sm", data: { "reset-pin-target": "form", turbo_frame: "market_data" } do |form| %>
+        <!-- Hidden Input Fields -->
+        <%= hidden_field_tag :current_pin, "", data: { "reset-pin-target": "currentPinInput" } %>
+        <%= hidden_field_tag :new_pin, "", data: { "reset-pin-target": "newPinInput" } %>
+        <%= hidden_field_tag :new_pin_confirmation, "", data: { "reset-pin-target": "newPinConfirmationInput" } %>
 
-      <%= form_with url: update_pin_path, method: :patch, local: true, class: "space-y-5", data: { turbo_frame: "market_data" } do |f| %>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Current PIN</label>
-          <%= password_field_tag :current_pin, nil, maxlength: 4, pattern: "\\d{4}", inputmode: "numeric", class: "w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">New PIN</label>
-            <%= password_field_tag :new_pin, nil, maxlength: 4, pattern: "\\d{4}", inputmode: "numeric", class: "w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm PIN</label>
-            <%= password_field_tag :new_pin_confirmation, nil, maxlength: 4, pattern: "\\d{4}", inputmode: "numeric", class: "w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+        <!-- PIN Entry Section -->
+        <div class="text-center mb-8">
+          <!-- PIN Dots -->
+          <div class="flex justify-center gap-5 mb-8" data-reset-pin-target="pinDots">
+            <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+            <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+            <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
+            <div class="pin-dot w-5 h-5 rounded-full bg-gray-200 transition-colors"></div>
           </div>
         </div>
 
-        <div class="pt-2">
-          <%= submit_tag "Update PIN", class: "w-full inline-flex justify-center items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" %>
+        <!-- Numeric Keypad -->
+        <div class="mt-12">
+          <div class="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+            <!-- Row 1 -->
+            <button type="button" data-key="1" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              1
+            </button>
+            <button type="button" data-key="2" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              2
+            </button>
+            <button type="button" data-key="3" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              3
+            </button>
+
+            <!-- Row 2 -->
+            <button type="button" data-key="4" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              4
+            </button>
+            <button type="button" data-key="5" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              5
+            </button>
+            <button type="button" data-key="6" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              6
+            </button>
+
+            <!-- Row 3 -->
+            <button type="button" data-key="7" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              7
+            </button>
+            <button type="button" data-key="8" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              8
+            </button>
+            <button type="button" data-key="9" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              9
+            </button>
+
+            <!-- Row 4 -->
+            <button type="button" data-key="clear" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-gray-100 border-2 border-gray-200 rounded-2xl text-base font-medium text-gray-600 active:bg-gray-200 active:scale-95 transition-all shadow-sm">
+              Clear
+            </button>
+            <button type="button" data-key="0" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-white border-2 border-gray-200 rounded-2xl text-2xl font-semibold text-gray-900 active:bg-gray-100 active:scale-95 transition-all shadow-sm">
+              0
+            </button>
+            <button type="button" data-key="backspace" data-action="click->reset-pin#handleKeyPress" class="aspect-square bg-gray-100 border-2 border-gray-200 rounded-2xl text-xl font-medium text-gray-600 active:bg-gray-200 active:scale-95 transition-all shadow-sm">
+              ⌫
+            </button>
+          </div>
         </div>
       <% end %>
     </div>
   </div>
-</div>
 
+  <style>
+    @media (max-height: 600px) {
+      .min-h-screen {
+        min-height: auto;
+      }
+    }
+  </style>
 <% end %>
-
