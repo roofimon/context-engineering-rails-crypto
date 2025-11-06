@@ -27,5 +27,8 @@ Rails.application.routes.draw do
 
   # PIN authentication routes
   resources :pins, only: [:new, :create, :destroy]
+  # Reset PIN (no ID) routes
+  get "pins/reset", to: "pins#edit", as: :edit_pin
+  patch "pins/reset", to: "pins#update", as: :update_pin
   delete "logout", to: "pins#destroy", as: :logout
 end
