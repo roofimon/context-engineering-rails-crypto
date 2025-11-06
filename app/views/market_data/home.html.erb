@@ -54,7 +54,7 @@
                       <% elsif change == :down %>
                         <div class="w-2 h-2 rounded-full bg-red-500"></div>
                       <% end %>
-                      <span class="text-sm text-gray-900 font-medium">
+                      <span id="asset-price" class="text-sm text-gray-900 font-medium">
                         $<%= format_price(asset[:exchanges][exchange][:price]) %>
                       </span>
                     </div>

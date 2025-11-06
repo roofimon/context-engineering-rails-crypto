@@ -5,7 +5,7 @@ export default class extends Controller {
   static targets = ["assetName"]
 
   connect() {
-    console.log("🏠 HOME CONTROLLER CONNECTED")
+    console.log("=== 🏠 HOME CONTROLLER CONNECTED ===")
     console.log("✅ Stimulus is working on market_data/home.html.erb")
     console.log("Current page:", window.location.pathname)
     
