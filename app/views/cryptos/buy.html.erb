@@ -1,5 +1,5 @@
 <%= turbo_frame_tag "market_data" do %>
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-2xl mx-auto pb-20 md:pb-6">
     <!-- Chart Section -->
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-6 mb-4">
       <!-- Asset Header -->
@@ -31,15 +31,6 @@
 
     <!-- Buy Form -->
     <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-6" data-controller="buy-form">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Buy <%= @asset[:name] %> (<%= @asset[:symbol] %>)</h2>
-        <%= link_to root_path, class: "text-gray-400 hover:text-gray-600", data: { turbo_frame: "market_data" } do %>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        <% end %>
-      </div>
-      
       <%= form_with url: confirm_order_path(symbol: @asset[:symbol]), method: :post, local: true, data: { turbo_frame: "market_data", action: "submit->buy-form#validateSubmit" } do |f| %>
         <div class="mb-6">
           <%= f.label :market_price, "Market Price ($)", class: "block text-sm font-medium text-gray-700 mb-2" %>
