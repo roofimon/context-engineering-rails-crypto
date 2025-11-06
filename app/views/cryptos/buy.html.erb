@@ -1,5 +1,35 @@
 <%= turbo_frame_tag "market_data" do %>
   <div class="max-w-2xl mx-auto">
+    <!-- Chart Section -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-6 mb-4">
+      <!-- Asset Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
+        <div class="flex items-center space-x-3">
+          <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black flex items-center justify-center">
+            <span class="text-white text-xs sm:text-sm font-semibold"><%= @asset[:icon] %></span>
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900"><%= @asset[:name] %></h3>
+            <p class="text-xs sm:text-sm text-gray-500"><%= @asset[:symbol] %></p>
+          </div>
+        </div>
+        <div class="text-left sm:text-right">
+          <p class="text-xl sm:text-2xl font-bold text-gray-900">$<%= format_price(@asset[:overall_price]) %></p>
+          <p class="text-xs sm:text-sm font-medium <%= @asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+            <%= @asset[:change] >= 0 ? '+' : '' %><%= format_change(@asset[:change]) %>%
+          </p>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div id="chart-<%= @asset[:symbol] %>" class="w-full overflow-hidden" style="height: 250px; min-height: 250px;">
+        <div id="status-<%= @asset[:symbol] %>" class="p-3 sm:p-4 bg-yellow-100 text-xs sm:text-sm">
+          <strong>Status:</strong> <span id="status-text-<%= @asset[:symbol] %>">Waiting for script...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buy Form -->
     <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-6" data-controller="buy-form">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-900">Buy <%= @asset[:name] %> (<%= @asset[:symbol] %>)</h2>
@@ -55,5 +85,193 @@
       <% end %>
     </div>
   </div>
+
+  <!-- Chart Script MUST be inside turbo_frame_tag to run when frame loads -->
+  <script>
+    console.log('=== BUY PAGE CHART SCRIPT LOADED ===');
+    
+    // Update status on page
+    function updateStatus(symbol, message) {
+      const statusEl = document.getElementById('status-text-' + symbol);
+      if (statusEl) {
+        statusEl.textContent = message;
+        console.log('Status for ' + symbol + ':', message);
+      }
+    }
+
+    // Prepare asset data
+    const assetData = {
+      symbol: '<%= j(@asset[:symbol]) %>',
+      name: '<%= j(@asset[:name]) %>',
+      dates: <%= raw @asset[:dates].to_json %>,
+      candlestickData: <%= raw @asset[:candlestick_data].to_json %>
+    };
+
+    console.log('Asset data prepared:', assetData);
+
+    // Wait for ApexCharts to be available
+    function waitForApexChartsAndCreate() {
+      if (window.ApexCharts && typeof window.ApexCharts === 'function') {
+        console.log('✅ ApexCharts is available!');
+        updateStatus(assetData.symbol, 'ApexCharts ready, creating chart...');
+        
+        setTimeout(function() {
+          createChart();
+        }, 100);
+      } else {
+        console.log('⏳ ApexCharts not ready yet, waiting...');
+        setTimeout(waitForApexChartsAndCreate, 100);
+      }
+    }
+
+    // Create chart function
+    function createChart() {
+      console.log('=== Creating chart for ' + assetData.symbol + ' ===');
+      updateStatus(assetData.symbol, 'Creating chart...');
+
+      const elementId = 'chart-' + assetData.symbol;
+      const chartElement = document.getElementById(elementId);
+      
+      if (!chartElement) {
+        console.error('Element not found:', elementId);
+        updateStatus(assetData.symbol, 'ERROR: Element not found');
+        return;
+      }
+
+      updateStatus(assetData.symbol, 'Element found, preparing data...');
+
+      // Format data for candlestick chart
+      const formattedData = assetData.dates.map(function(date, index) {
+        return {
+          x: date,
+          y: assetData.candlestickData[index] // [open, high, low, close]
+        };
+      });
+
+      console.log('Data prepared:', formattedData);
+      updateStatus(assetData.symbol, 'Data ready (' + formattedData.length + ' candles)');
+
+      // Create chart options
+      const options = {
+        series: [{
+          name: assetData.symbol,
+          data: formattedData
+        }],
+        chart: {
+          type: 'candlestick',
+          height: 250,
+          toolbar: { show: false }
+        },
+        xaxis: {
+          type: 'category',
+          labels: {
+            show: false
+          },
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          }
+        },
+        yaxis: {
+          labels: {
+            formatter: function(val) {
+              return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+            },
+            style: { fontSize: '11px', colors: '#6B7280' }
+          }
+        },
+        plotOptions: {
+          candlestick: {
+            colors: {
+              upward: '#10B981',  // Green for bullish candles
+              downward: '#EF4444' // Red for bearish candles
+            }
+          }
+        },
+        tooltip: {
+          custom: function({seriesIndex, dataPointIndex, w}) {
+            const data = w.globals.seriesCandleData[seriesIndex][dataPointIndex];
+            const [open, high, low, close] = data;
+            const isUp = close >= open;
+            return '<div class="p-2">' +
+              '<div class="font-semibold">' + w.globals.categoryLabels[dataPointIndex] + '</div>' +
+              '<div class="text-sm">' +
+              '<div>Open: <span class="font-medium">$' + open.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+              '<div>High: <span class="font-medium">$' + high.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+              '<div>Low: <span class="font-medium">$' + low.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+              '<div>Close: <span class="font-medium ' + (isUp ? 'text-green-600' : 'text-red-600') + '">$' + close.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
+              '</div>' +
+              '</div>';
+          }
+        }
+      };
+
+      updateStatus(assetData.symbol, 'Options created, creating chart instance...');
+
+      try {
+        const chart = new window.ApexCharts(chartElement, options);
+        updateStatus(assetData.symbol, 'Chart instance created, rendering...');
+
+        chart.render().then(function() {
+          console.log('✅ Chart rendered for ' + assetData.symbol + '!');
+          updateStatus(assetData.symbol, '✅ Chart rendered successfully!');
+          // Hide status after 2 seconds
+          setTimeout(function() {
+            const statusDiv = document.getElementById('status-' + assetData.symbol);
+            if (statusDiv) statusDiv.style.display = 'none';
+          }, 2000);
+        }).catch(function(error) {
+          console.error('Error rendering chart:', error);
+          updateStatus(assetData.symbol, 'ERROR: ' + error.message);
+        });
+      } catch (error) {
+        console.error('Error creating chart:', error);
+        updateStatus(assetData.symbol, 'ERROR: ' + error.message);
+      }
+    }
+
+    // Initialize on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (window.ApexCharts) {
+          createChart();
+        } else {
+          waitForApexChartsAndCreate();
+        }
+      });
+    } else {
+      if (window.ApexCharts) {
+        createChart();
+      } else {
+        waitForApexChartsAndCreate();
+      }
+    }
+
+    // Initialize on Turbo Frame load
+    document.addEventListener('turbo:frame-load', function(event) {
+      console.log('Turbo frame loaded! Frame ID: ' + (event.target?.id || 'unknown'));
+      
+      if (event.target.id === 'market_data') {
+        console.log('✅ Market data frame loaded, initializing chart...');
+        setTimeout(function() {
+          waitForApexChartsAndCreate();
+        }, 300);
+      }
+    });
+
+    // Also try on turbo:load
+    document.addEventListener('turbo:load', function() {
+      console.log('turbo:load event fired');
+      setTimeout(waitForApexChartsAndCreate, 300);
+    });
+
+    console.log('=== Chart setup complete ===');
+  </script>
+<% end %>
+
+<% content_for :head do %>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.47.0/dist/apexcharts.min.js"></script>
 <% end %>
 
