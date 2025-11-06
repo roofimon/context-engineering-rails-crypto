@@ -1,64 +1,57 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="market-api"
-// Using free Binance Public API
+// Example using free CoinGecko API
 export default class extends Controller {
   static targets = ["price", "change", "assetName"]
   
-  // Map your asset symbols to Binance trading pairs
+  // Map your asset symbols to CoinGecko IDs
   static cryptoMapping = {
-    'BTC': 'BTCUSDT',
-    'ETH': 'ETHUSDT',
-    'SOL': 'SOLUSDT',
-    'USDT': 'USDTUSD',
-    'BNB': 'BNBUSDT'
+    'BTC': 'bitcoin',
+    'ETH': 'ethereum',
+    'SOL': 'solana',
+    'USDT': 'tether',
+    'BNB': 'binancecoin'
   }
 
   connect() {
     console.log("=== 📡 MARKET API CONTROLLER CONNECTED ===")
-    console.log("✅ Using Binance Public API (Free, No Key Required)")
+    console.log("✅ Using CoinGecko free API")
     
     // Fetch real prices immediately
     this.fetchRealPrices()
     
-    // Update prices every 3 seconds (Binance has no strict limits for public data)
+    // Update prices every 30 seconds (CoinGecko rate limit friendly)
     this.priceInterval = setInterval(() => {
       this.fetchRealPrices()
-    }, 3000)
+    }, 30000)
   }
 
   async fetchRealPrices() {
-    console.log("🔄 Fetching real-time prices from Binance...")
+    console.log("🔄 Fetching real-time prices from CoinGecko...")
     
     try {
-      // Get all trading pairs
-      const symbols = Object.values(this.constructor.cryptoMapping)
+      // Get all crypto IDs we want to fetch
+      const cryptoIds = Object.values(this.constructor.cryptoMapping).join(',')
       
-      // Binance API endpoint (free, no key required)
-      // Fetch all tickers at once for better performance
-      const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`
+      // CoinGecko API endpoint (free, no key required)
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd&include_24hr_change=true`
       
       const response = await fetch(url)
       
       if (!response.ok) {
-        throw new Error(`Binance API responded with status: ${response.status}`)
+        throw new Error(`API responded with status: ${response.status}`)
       }
       
       const data = await response.json()
-      console.log("✅ Real prices fetched from Binance:", data.length, "assets")
-      
-      // Convert array to object for easier lookup
-      const priceData = {}
-      data.forEach(item => {
-        priceData[item.symbol] = item
-      })
+      console.log("✅ Real prices fetched:", data)
       
       // Update the UI with real data
-      this.updatePricesFromAPI(priceData)
+      this.updatePricesFromAPI(data)
       
     } catch (error) {
-      console.error("❌ Error fetching prices from Binance:", error)
-      console.log("💡 Tip: Check your internet connection")
+      console.error("❌ Error fetching prices:", error)
+      console.log("💡 Tip: Check your internet connection or API rate limits")
     }
   }
 
@@ -71,8 +64,8 @@ export default class extends Controller {
       const symbol = this.findSymbolByName(assetName)
       if (!symbol) return
       
-      const tradingPair = this.constructor.cryptoMapping[symbol]
-      const priceData = apiData[tradingPair]
+      const cryptoId = this.constructor.cryptoMapping[symbol]
+      const priceData = apiData[cryptoId]
       
       if (priceData) {
         // Find price elements for this asset
@@ -83,7 +76,7 @@ export default class extends Controller {
         const priceElements = assetRow.querySelectorAll('[data-market-api-target="price"]')
         priceElements.forEach(el => {
           const oldPrice = parseFloat(el.textContent.replace(/[$,]/g, ''))
-          const newPrice = parseFloat(priceData.lastPrice)
+          const newPrice = priceData.usd
           
           el.textContent = this.formatPrice(newPrice)
           
@@ -95,13 +88,13 @@ export default class extends Controller {
         
         // Update 24h change
         const changeElement = assetRow.querySelector('[data-market-api-target="change"]')
-        if (changeElement && priceData.priceChangePercent) {
-          const change = parseFloat(priceData.priceChangePercent)
+        if (changeElement && priceData.usd_24h_change) {
+          const change = priceData.usd_24h_change
           changeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`
           changeElement.className = `text-sm font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`
         }
         
-        console.log(`📊 Updated ${symbol}: $${priceData.lastPrice} (${priceData.priceChangePercent}%)`)
+        console.log(`📊 Updated ${symbol}: $${priceData.usd} (${priceData.usd_24h_change?.toFixed(2)}%)`)
       }
     })
   }
