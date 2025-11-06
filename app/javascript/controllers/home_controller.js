@@ -26,24 +26,60 @@ export default class extends Controller {
   }
 
   startPriceUpdates() {
-    console.log("💰 Starting real-time price updates...")
+    console.log("💰 Starting real-time price updates with different rhythms...")
     
-    // Update prices every 2 seconds
-    this.priceInterval = setInterval(() => {
-      this.updatePrices()
-    }, 2000)
+    // Group price elements by asset (each asset has multiple price displays)
+    this.assetGroups = this.groupPricesByAsset()
+    
+    // Create different update intervals for each asset
+    this.intervals = []
+    
+    this.assetGroups.forEach((group, index) => {
+      // Each asset gets a unique interval between 1.5 to 4 seconds
+      const interval = 1500 + (index * 500) + Math.random() * 1000
+      
+      console.log(`⏱️ Asset ${index + 1} updating every ${(interval / 1000).toFixed(2)}s`)
+      
+      const intervalId = setInterval(() => {
+        this.updateAssetGroup(group)
+      }, interval)
+      
+      this.intervals.push(intervalId)
+    })
   }
 
-  updatePrices() {
-    console.log("🔄 Updating prices...")
+  groupPricesByAsset() {
+    // Group price and change elements by their position (same asset)
+    const groups = []
+    const priceCount = this.priceTargets.length
+    const changeCount = this.changeTargets.length
     
-    // Update all price elements
-    this.priceTargets.forEach(priceElement => {
+    // Assuming prices and changes are in order per asset
+    // Each asset might have multiple price elements (main + exchanges)
+    const pricesPerChange = Math.floor(priceCount / changeCount)
+    
+    for (let i = 0; i < changeCount; i++) {
+      const startIdx = i * pricesPerChange
+      const endIdx = (i === changeCount - 1) ? priceCount : (i + 1) * pricesPerChange
+      
+      groups.push({
+        prices: this.priceTargets.slice(startIdx, endIdx),
+        change: this.changeTargets[i],
+        volatility: 0.3 + Math.random() * 0.7 // Random volatility between 0.3 and 1.0
+      })
+    }
+    
+    return groups
+  }
+
+  updateAssetGroup(group) {
+    // Update all prices in this asset group
+    group.prices.forEach(priceElement => {
       const currentPrice = parseFloat(priceElement.textContent.replace(/[$,]/g, ''))
       
       if (!isNaN(currentPrice)) {
-        // Random change between -0.5% and +0.5%
-        const changePercent = (Math.random() - 0.5) * 0.01
+        // Random change based on asset's volatility
+        const changePercent = (Math.random() - 0.5) * 0.01 * group.volatility
         const newPrice = currentPrice * (1 + changePercent)
         
         // Format price
@@ -55,20 +91,19 @@ export default class extends Controller {
       }
     })
     
-    // Update change percentages
-    this.changeTargets.forEach(changeElement => {
-      const currentChange = parseFloat(changeElement.textContent.replace(/[+%]/g, ''))
+    // Update the change percentage for this asset
+    const changeElement = group.change
+    const currentChange = parseFloat(changeElement.textContent.replace(/[+%]/g, ''))
+    
+    if (!isNaN(currentChange)) {
+      // Accumulate small changes based on volatility
+      const changeAmount = (Math.random() - 0.5) * 0.1 * group.volatility
+      const newChange = currentChange + changeAmount
       
-      if (!isNaN(currentChange)) {
-        // Accumulate small changes
-        const changeAmount = (Math.random() - 0.5) * 0.1
-        const newChange = currentChange + changeAmount
-        
-        // Update text and color
-        changeElement.textContent = `${newChange >= 0 ? '+' : ''}${newChange.toFixed(2)}%`
-        changeElement.className = `text-sm font-medium ${newChange >= 0 ? 'text-green-600' : 'text-red-600'}`
-      }
-    })
+      // Update text and color
+      changeElement.textContent = `${newChange >= 0 ? '+' : ''}${newChange.toFixed(2)}%`
+      changeElement.className = `text-sm font-medium ${newChange >= 0 ? 'text-green-600' : 'text-red-600'}`
+    }
   }
 
   formatPrice(price) {
@@ -93,9 +128,10 @@ export default class extends Controller {
   disconnect() {
     console.log("👋 HOME CONTROLLER DISCONNECTED")
     
-    // Stop price updates
-    if (this.priceInterval) {
-      clearInterval(this.priceInterval)
+    // Stop all price update intervals
+    if (this.intervals) {
+      this.intervals.forEach(interval => clearInterval(interval))
+      console.log(`🛑 Stopped ${this.intervals.length} update intervals`)
     }
   }
 }
