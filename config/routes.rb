@@ -22,10 +22,12 @@ Rails.application.routes.draw do
 
   # Buy crypto routes
   get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto
-  post "cryptos/:symbol/confirm", to: "cryptos#confirm", as: :confirm_order
-  get "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin", as: :verify_order_pin
-  post "cryptos/:symbol/verify_pin", to: "cryptos#verify_order_pin"
-  post "cryptos/:symbol/buy", to: "cryptos#create_order", as: :create_order
+  
+  # Order routes
+  post "orders/:symbol/confirm", to: "orders#confirm", as: :confirm_order
+  get "orders/:symbol/verify_pin", to: "orders#verify_pin", as: :verify_order_pin
+  post "orders/:symbol/verify_pin", to: "orders#verify_pin"
+  post "orders/:symbol", to: "orders#create", as: :create_order
 
   # PIN authentication routes
   resources :pins, only: [:new, :create, :destroy]
