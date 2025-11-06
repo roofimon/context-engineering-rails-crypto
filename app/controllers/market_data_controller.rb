@@ -54,12 +54,12 @@ class MarketDataController < ApplicationController
         # Base price with trend
         trend_price = start_price + (trend_per_day * i)
         
-        # Open price: previous close with small gap (-0.3% to +0.3%), or start price for first day
+        # Open price: previous close with gap (-5% to +5%), or start price for first day
         if i == 0
           open_price = trend_price
         else
-          # Small gap between sessions (realistic market gaps)
-          gap = (rand - 0.5) * 0.006 # -0.3% to +0.3%
+          # Gap between sessions (5% range)
+          gap = (rand - 0.5) * 0.10 # -5% to +5%
           open_price = previous_close * (1.0 + gap)
         end
         
