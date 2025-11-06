@@ -15,8 +15,10 @@ Rails.application.routes.draw do
   # Market Data routes (menu pages)
   get "activities", to: "market_data#activities", as: :activities
   get "more", to: "market_data#more", as: :more
-  get "wallet", to: "market_data#wallet", as: :wallet
   get "market_trend", to: "market_data#market_trend", as: :market_trend
+  
+  # Wallet routes
+  get "wallet", to: "wallet#index", as: :wallet
 
   # Buy crypto routes
   get "cryptos/:symbol/buy", to: "cryptos#buy", as: :buy_crypto

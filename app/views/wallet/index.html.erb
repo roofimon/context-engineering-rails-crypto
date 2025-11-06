@@ -1,0 +1,108 @@
+<% content_for :title, "Wallet - Store" %>
+
+<div class="min-h-screen bg-white">
+  <!-- Header -->
+  <header class="border-b border-gray-200 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Wallet</h1>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+    <%= turbo_frame_tag "market_data" do %>
+      <!-- Desktop Table View -->
+      <div class="hidden md:block overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Asset</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Holdings</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Binance</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Coinbase</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Estimated Value</th>
+            <th class="text-right py-4 px-4 text-sm font-semibold text-gray-600 uppercase tracking-wider">Change</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @assets.each do |asset| %>
+            <tr class="hover:bg-gray-50 transition-colors">
+              <!-- Asset Column -->
+              <td class="py-5 px-4">
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0 w-10 h-10 rounded-full bg-black flex items-center justify-center">
+                    <span class="text-white text-xs font-semibold"><%= asset[:icon] %></span>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900"><%= asset[:name] %></div>
+                    <%= link_to asset[:symbol], 
+                        buy_crypto_path(asset[:symbol]), 
+                        class: "text-sm text-gray-500 hover:text-blue-600 cursor-pointer",
+                        data: { turbo_frame: "market_data" } %>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Holdings Column -->
+              <td class="py-5 px-4 text-right">
+                <span class="text-sm font-medium text-gray-900">
+                  <%= format_quantity(asset[:quantity]) %>
+                </span>
+              </td>
+
+              <!-- Exchange Prices -->
+              <% %w[Binance Coinbase].each do |exchange| %>
+                <td class="py-5 px-4 text-right">
+                  <% if asset[:exchanges][exchange] && asset[:exchanges][exchange][:price] %>
+                    <div class="flex items-center justify-end space-x-2">
+                      <% change = asset[:exchanges][exchange][:change] %>
+                      <% if change == :up %>
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                      <% elsif change == :down %>
+                        <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                      <% end %>
+                      <span class="text-sm text-gray-900 font-medium">
+                        $<%= format_price(asset[:exchanges][exchange][:price]) %>
+                      </span>
+                    </div>
+                  <% else %>
+                    <span class="text-sm text-gray-400">—</span>
+                  <% end %>
+                </td>
+              <% end %>
+
+              <!-- Overall Price -->
+              <td class="py-5 px-4 text-right">
+                <span class="text-base font-semibold text-gray-900">
+                  $<%= format_price(asset[:overall_price]) %>
+                </span>
+              </td>
+
+              <!-- Estimated Value -->
+              <td class="py-5 px-4 text-right">
+                <span class="text-base font-semibold text-blue-600">
+                  $<%= format_price(estimated_value(asset)) %>
+                </span>
+              </td>
+
+              <!-- Change -->
+              <td class="py-5 px-4 text-right">
+                <span class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                  <%= asset[:change] >= 0 ? '+' : '' %><%= format_change(asset[:change]) %>%
+                </span>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <%= render "market_data/mobile_card" %>
+    <% end %>
+  </main>
+
+  <%= render "market_data/bottom_navigation" %>
+</div>
+
