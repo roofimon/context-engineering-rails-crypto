@@ -34,10 +34,27 @@ class MarketDataController < ApplicationController
     @orders = @orders.sort_by { |order| order["timestamp"] }.reverse
   end
 
-  # Market Trend - Candlestick charts page
+  # Market Trend - Area charts page
   def market_trend
     @assets = index_assets
-    @assets = @assets.map { |asset| generate_candlestick_data(asset, days: 30) }
+    
+    # Try to load Binance historical data
+    binance_data = load_binance_historical_data
+    
+    @assets = @assets.map do |asset|
+      symbol = asset[:symbol].to_sym
+      
+      # Use Binance data if available, otherwise generate
+      if binance_data[symbol] && binance_data[symbol][:candlestick_data]
+        asset.merge(
+          candlestick_data: binance_data[symbol][:candlestick_data],
+          dates: binance_data[symbol][:dates]
+        )
+      else
+        # Fallback to generated data
+        generate_candlestick_data(asset, days: 30)
+      end
+    end
   end
 
   # Wallet - Holdings page

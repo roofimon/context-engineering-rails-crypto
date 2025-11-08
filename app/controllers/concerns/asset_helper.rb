@@ -113,6 +113,42 @@ module AssetHelper
     @assets.find { |a| a[:symbol] == symbol.upcase }
   end
 
+  # Load Binance historical data from SQLite
+  # Returns hash with symbol => {dates: [], candlestick_data: []}
+  def load_binance_historical_data
+    return {} unless HistoricalPriceData.table_exists?
+    
+    begin
+      # Get all unique symbols
+      symbols = HistoricalPriceData.distinct.pluck(:symbol)
+      
+      symbols.each_with_object({}) do |symbol, hash|
+        # Fetch data for this symbol, ordered by date
+        records = HistoricalPriceData.for_symbol(symbol).ordered_by_date
+        
+        if records.any?
+          dates = records.pluck(:date)
+          candlestick_data = records.map do |record|
+            [
+              record.open.to_f.round(4),
+              record.high.to_f.round(4),
+              record.low.to_f.round(4),
+              record.close.to_f.round(4)
+            ]
+          end
+          
+          hash[symbol.to_sym] = {
+            dates: dates,
+            candlestick_data: candlestick_data
+          }
+        end
+      end
+    rescue => e
+      Rails.logger.error "Error loading Binance historical data from SQLite: #{e.message}"
+      {}
+    end
+  end
+
   # Generate candlestick data for an asset
   # Returns the asset hash with :candlestick_data and :dates added
   def generate_candlestick_data(asset, days: 30)
