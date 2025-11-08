@@ -9,21 +9,32 @@ class MarketDataController < ApplicationController
   def home
     @assets = index_assets
     @assets.each do |asset|
-      base_price = asset[:overall_price]
-      volatility = asset[:volatility] || 0.02
+      symbol = asset[:symbol].to_s.upcase
       
-      # Generate realistic 7-day price history with trend
-      # Start from slightly lower price and trend towards current
-      start_price = base_price * (0.95 + rand * 0.05)
-      trend = (base_price - start_price) / 6.0 # Daily trend
+      # Get last 7 days of close prices from SQLite
+      records = HistoricalPriceData.for_symbol(symbol)
+                                    .order(date: :desc)
+                                    .limit(7)
+                                    .to_a
+                                    .reverse # Reverse to get oldest first (for chart)
       
-      asset[:price_history] = 7.times.map do |i|
-        # Base price with trend
-        trend_price = start_price + (trend * i)
-        # Add realistic daily volatility
-        daily_change = (rand - 0.5) * 2 * volatility
-        trend_price * (1.0 + daily_change)
+      # Print data that matches the query
+      puts "=" * 60
+      puts "📊 Querying #{symbol} from SQLite:"
+      puts "-" * 60
+      puts "Found #{records.length} records:"
+      records.each_with_index do |record, index|
+        puts "  Day #{index + 1}: #{record.date} - Close: $#{record.close.to_f.round(4)}"
       end
+      puts "-" * 60
+      
+      # Extract close prices for price history
+      price_history = records.map { |r| r.close.to_f }
+      asset[:price_history] = price_history
+      
+      puts "Price history array: #{price_history.inspect}"
+      puts "=" * 60
+      puts ""
     end
   end
 

@@ -62,17 +62,50 @@ module AssetHelper
     orders = session[:orders] || []
 
     base_assets.map do |asset|
-      # Generate realistic prices with hour-based variation
-      Random.srand(seed + asset[:symbol].hash)
+      symbol = asset[:symbol].to_s.upcase
       
-      # Base price with small random variation (±0.5%)
-      current_base = asset[:base_price] * (0.995 + rand * 0.01)
-      
-      # 24h change: realistic range -8% to +12%
-      change_percent = (rand - 0.3) * 20 # Bias slightly positive
-      change_percent = [[change_percent, -8.0].max, 12.0].min
+      # Try to get latest price from SQLite, fallback to base_price
+      if HistoricalPriceData.table_exists?
+        latest_record = HistoricalPriceData.for_symbol(symbol)
+                                            .order(date: :desc)
+                                            .first
+        
+        if latest_record
+          # Use real price from SQLite
+          current_base = latest_record.close.to_f
+          
+          # Calculate 24h change from yesterday's price
+          last_two = HistoricalPriceData.for_symbol(symbol)
+                                        .order(date: :desc)
+                                        .limit(2)
+                                        .to_a
+          
+          if last_two.length >= 2
+            yesterday_price = last_two[1].close.to_f
+            change_percent = ((current_base - yesterday_price) / yesterday_price) * 100
+          else
+            # Fallback to generated change if no yesterday data
+            Random.srand(seed + asset[:symbol].hash)
+            change_percent = (rand - 0.3) * 20
+            change_percent = [[change_percent, -8.0].max, 12.0].min
+          end
+        else
+          # No data in SQLite, use base_price with variation
+          Random.srand(seed + asset[:symbol].hash)
+          current_base = asset[:base_price] * (0.995 + rand * 0.01)
+          change_percent = (rand - 0.3) * 20
+          change_percent = [[change_percent, -8.0].max, 12.0].min
+        end
+      else
+        # Table doesn't exist, use base_price with variation
+        Random.srand(seed + asset[:symbol].hash)
+        current_base = asset[:base_price] * (0.995 + rand * 0.01)
+        change_percent = (rand - 0.3) * 20
+        change_percent = [[change_percent, -8.0].max, 12.0].min
+      end
       
       # Exchange prices with realistic spreads (0.1% - 0.5%)
+      Random.srand(seed + asset[:symbol].hash)
       spread = 0.001 + rand * 0.004
       binance_price = current_base * (1.0 - spread / 2)
       coinbase_price = current_base * (1.0 + spread / 2)
