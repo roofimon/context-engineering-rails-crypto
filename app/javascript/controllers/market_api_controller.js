@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="market-api"
 // Example using free CoinGecko API
 export default class extends Controller {
-  static targets = ["price", "change", "assetName", "exchangePrice", "exchangeIndicator"]
+  static targets = ["price", "change", "assetName", "exchangePrice", "exchangeIndicator", "averagePrice"]
   
   // Map your asset symbols to CoinGecko IDs
   static cryptoMapping = {
@@ -101,9 +101,10 @@ export default class extends Controller {
       console.log(`   USD Price: $${this.formatPrice(price)}`)
       console.log(`   24h Change: ${change24h >= 0 ? '+' : ''}${change24h?.toFixed(2)}%`)
       
-      // Update main price displays
+      // Update main price displays (works for both table and mobile card)
       this.priceTargets.forEach(priceElement => {
-        const assetRow = priceElement.closest('[data-crypto], tr')
+        // Look for both tr (desktop table) and div (mobile card) elements with data-crypto
+        const assetRow = priceElement.closest('[data-crypto], tr, div[data-crypto]')
         if (!assetRow) return
         
         // Check if this price element is for the current crypto
@@ -121,12 +122,14 @@ export default class extends Controller {
       })
       
       // Update exchange-specific prices (Binance & Coinbase columns)
+      // Works for both table (td) and mobile card (div) elements
       this.exchangePriceTargets.forEach(exchangePriceElement => {
-        const td = exchangePriceElement.closest('td')
-        if (!td) return
+        // Look for both td (desktop table) and div (mobile card) elements
+        const container = exchangePriceElement.closest('td, div[data-exchange]')
+        if (!container) return
         
-        const cryptoSymbol = td.getAttribute('data-crypto')
-        const exchangeName = td.getAttribute('data-exchange')
+        const cryptoSymbol = container.getAttribute('data-crypto')
+        const exchangeName = container.getAttribute('data-exchange')
         
         if (cryptoSymbol === symbol && exchangeName) {
           const oldPrice = parseFloat(exchangePriceElement.textContent.replace(/[$,]/g, ''))
@@ -138,8 +141,8 @@ export default class extends Controller {
           
           exchangePriceElement.textContent = this.formatPrice(adjustedPrice)
           
-          // Update indicator
-          const indicator = td.querySelector('[data-market-api-target="exchangeIndicator"]')
+          // Update indicator (works for both td and div containers)
+          const indicator = container.querySelector('[data-market-api-target="exchangeIndicator"]')
           if (indicator && !isNaN(oldPrice)) {
             const isUp = adjustedPrice > oldPrice
             indicator.className = `w-2 h-2 rounded-full ${isUp ? 'bg-green-500' : 'bg-red-500'}`
@@ -153,19 +156,23 @@ export default class extends Controller {
         }
       })
       
-      // Update 24h change
+      // Update 24h change (works for both table and mobile card)
       this.changeTargets.forEach(changeElement => {
-        const assetRow = changeElement.closest('[data-crypto], tr, .bg-white')
+        // Look for both tr (desktop table) and div (mobile card) elements with data-crypto
+        const assetRow = changeElement.closest('[data-crypto], tr, div[data-crypto]')
         if (!assetRow) return
         
         const assetName = assetRow.querySelector('[data-market-api-target="assetName"]')?.textContent.trim()
         const matchSymbol = this.findSymbolByName(assetName)
-        
+
         if (matchSymbol === symbol && change24h) {
           changeElement.textContent = `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%`
           changeElement.className = `text-sm font-medium ${change24h >= 0 ? 'text-green-600' : 'text-red-600'}`
         }
       })
+      
+      // Calculate and update average price for mobile view
+      this.updateAveragePrice(symbol)
       
       console.log(`   ✅ UI Updated for ${symbol}`)
       console.log("")
@@ -173,6 +180,48 @@ export default class extends Controller {
     
     console.log("-".repeat(60))
     console.log("✅ All prices updated in UI\n")
+  }
+
+  updateAveragePrice(symbol) {
+    // Find all exchange prices for this symbol in mobile view
+    const exchangePrices = []
+    
+    this.exchangePriceTargets.forEach(exchangePriceElement => {
+      const container = exchangePriceElement.closest('div[data-exchange]')
+      if (!container) return
+      
+      const cryptoSymbol = container.getAttribute('data-crypto')
+      if (cryptoSymbol === symbol) {
+        const priceText = exchangePriceElement.textContent.replace(/[$,]/g, '')
+        const price = parseFloat(priceText)
+        if (!isNaN(price)) {
+          exchangePrices.push(price)
+        }
+      }
+    })
+    
+    // Calculate average if we have at least one exchange price
+    if (exchangePrices.length > 0) {
+      const average = exchangePrices.reduce((sum, price) => sum + price, 0) / exchangePrices.length
+      
+      // Update average price in mobile view
+      this.averagePriceTargets.forEach(averagePriceElement => {
+        const card = averagePriceElement.closest('div[data-crypto]')
+        if (!card) return
+        
+        const cryptoSymbol = card.getAttribute('data-crypto')
+        if (cryptoSymbol === symbol) {
+          const oldPrice = parseFloat(averagePriceElement.textContent.replace(/[$,]/g, ''))
+          averagePriceElement.textContent = this.formatPrice(average)
+          
+          if (!isNaN(oldPrice) && oldPrice !== average) {
+            this.flashElement(averagePriceElement, average > oldPrice)
+          }
+          
+          console.log(`📊 Average price for ${symbol}: $${this.formatPrice(average)} (from ${exchangePrices.length} exchanges)`)
+        }
+      })
+    }
   }
 
   findSymbolByName(name) {
