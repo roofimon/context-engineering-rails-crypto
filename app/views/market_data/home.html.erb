@@ -26,7 +26,7 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           <% @assets.each do |asset| %>
-            <tr class="hover:bg-gray-50 transition-colors">
+            <tr class="hover:bg-gray-50 transition-colors" data-crypto="<%= asset[:symbol] %>">
               <!-- Asset Column -->
               <td class="py-5 px-4">
                 <div class="flex items-center space-x-3">
@@ -34,7 +34,7 @@
                     <span class="text-white text-xs font-semibold"><%= asset[:icon] %></span>
                   </div>
                   <div>
-                    <div class="text-sm font-medium text-gray-900" data-home-target="assetName"><%= asset[:name] %></div>
+                    <div class="text-sm font-medium text-gray-900" data-market-api-target="assetName"><%= asset[:name] %></div>
                     <%= link_to asset[:symbol],
                         buy_crypto_path(asset[:symbol]),
                         class: "text-sm text-gray-500 hover:text-blue-600 cursor-pointer",
@@ -67,13 +67,13 @@
               <!-- Overall Price -->
               <td class="py-5 px-4 text-right">
                 <span class="text-base font-semibold text-gray-900">
-                  $<%= format_price(asset[:overall_price]) %>
+                  $<span data-market-api-target="price"><%= format_price(asset[:overall_price]) %></span>
                 </span>
               </td>
 
               <!-- 24h Change -->
               <td class="py-5 px-4 text-right">
-                <span class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>">
+                <span class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>" data-market-api-target="change">
                   <%= asset[:change] >= 0 ? '+' : '' %><%= format_change(asset[:change]) %>%
                 </span>
               </td>

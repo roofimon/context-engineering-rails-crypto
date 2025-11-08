@@ -53,7 +53,26 @@ export default class extends Controller {
       }
       
       const data = await response.json()
-      console.log("✅ Real prices fetched:", data)
+      
+      // Print raw API data to console
+      console.log("=".repeat(60))
+      console.log("📡 RAW API DATA FROM COINGECKO:")
+      console.log("=".repeat(60))
+      console.log(JSON.stringify(data, null, 2))
+      console.log("=".repeat(60))
+      
+      // Print formatted price data
+      console.log("\n💰 FORMATTED PRICE DATA:")
+      console.log("-".repeat(60))
+      Object.keys(data).forEach(coinGeckoId => {
+        const symbol = this.constructor.reverseMapping[coinGeckoId] || coinGeckoId.toUpperCase()
+        const priceData = data[coinGeckoId]
+        console.log(`${symbol} (${coinGeckoId}):`)
+        console.log(`  Price: $${this.formatPrice(priceData.usd)}`)
+        console.log(`  24h Change: ${priceData.usd_24h_change >= 0 ? '+' : ''}${priceData.usd_24h_change?.toFixed(2)}%`)
+        console.log("")
+      })
+      console.log("-".repeat(60))
       
       // Update the UI with real data
       this.updatePricesFromAPI(data)
@@ -65,6 +84,9 @@ export default class extends Controller {
   }
 
   updatePricesFromAPI(apiData) {
+    console.log("\n🔄 PROCESSING API DATA FOR UI UPDATE:")
+    console.log("-".repeat(60))
+    
     // Iterate through CoinGecko data
     Object.keys(apiData).forEach(coinGeckoId => {
       const priceData = apiData[coinGeckoId]
@@ -74,6 +96,10 @@ export default class extends Controller {
       
       const price = priceData.usd
       const change24h = priceData.usd_24h_change
+      
+      console.log(`📊 Processing ${symbol} (${coinGeckoId}):`)
+      console.log(`   USD Price: $${this.formatPrice(price)}`)
+      console.log(`   24h Change: ${change24h >= 0 ? '+' : ''}${change24h?.toFixed(2)}%`)
       
       // Update main price displays
       this.priceTargets.forEach(priceElement => {
@@ -141,8 +167,12 @@ export default class extends Controller {
         }
       })
       
-      console.log(`📊 Updated ${symbol}: $${this.formatPrice(price)} (${change24h?.toFixed(2)}%)`)
+      console.log(`   ✅ UI Updated for ${symbol}`)
+      console.log("")
     })
+    
+    console.log("-".repeat(60))
+    console.log("✅ All prices updated in UI\n")
   }
 
   findSymbolByName(name) {
