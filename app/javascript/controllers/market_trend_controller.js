@@ -92,27 +92,59 @@ export default class extends Controller {
 
       this.updateStatus(asset.symbol, 'Element found, preparing data...')
 
-      // Format data for candlestick chart
+      // Format data for area chart - extract close prices from candlestick data
       const formattedData = asset.dates.map((date, index) => {
+        const candle = asset.candlestickData[index] // [open, high, low, close]
+        const closePrice = candle[3] // Extract close price (4th element)
         return {
           x: date,
-          y: asset.candlestickData[index] // [open, high, low, close]
+          y: closePrice
         }
       })
 
-      console.log('Data prepared for ' + asset.symbol + ':', formattedData.length + ' candles')
-      this.updateStatus(asset.symbol, 'Data ready (' + formattedData.length + ' candles)')
+      console.log('Data prepared for ' + asset.symbol + ':', formattedData.length + ' data points')
+      this.updateStatus(asset.symbol, 'Data ready (' + formattedData.length + ' data points)')
 
-      // Create chart options
+      // Create chart options for area chart
       const options = {
         series: [{
           name: asset.symbol,
           data: formattedData
         }],
         chart: {
-          type: 'candlestick',
+          type: 'area',
           height: 250,
-          toolbar: { show: false }
+          toolbar: { show: false },
+          zoom: { enabled: false }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 2,
+          colors: ['#3B82F6'] // Blue line
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.3,
+            stops: [0, 100],
+            colorStops: [
+              {
+                offset: 0,
+                color: '#3B82F6',
+                opacity: 0.7
+              },
+              {
+                offset: 100,
+                color: '#3B82F6',
+                opacity: 0.3
+              }
+            ]
+          }
         },
         xaxis: {
           type: 'category',
@@ -134,30 +166,14 @@ export default class extends Controller {
             style: { fontSize: '11px', colors: '#6B7280' }
           }
         },
-        plotOptions: {
-          candlestick: {
-            colors: {
-              upward: '#10B981',  // Green for bullish candles
-              downward: '#EF4444' // Red for bearish candles
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
             }
           }
         },
-        tooltip: {
-          custom: function({seriesIndex, dataPointIndex, w}) {
-            const data = w.globals.seriesCandleData[seriesIndex][dataPointIndex]
-            const [open, high, low, close] = data
-            const isUp = close >= open
-            return '<div class="p-2">' +
-              '<div class="font-semibold">' + w.globals.categoryLabels[dataPointIndex] + '</div>' +
-              '<div class="text-sm">' +
-              '<div>Open: <span class="font-medium">$' + open.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
-              '<div>High: <span class="font-medium">$' + high.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
-              '<div>Low: <span class="font-medium">$' + low.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
-              '<div>Close: <span class="font-medium ' + (isUp ? 'text-green-600' : 'text-red-600') + '">$' + close.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + '</span></div>' +
-              '</div>' +
-              '</div>'
-          }
-        }
+        colors: ['#3B82F6'] // Blue color for the area
       }
 
       this.updateStatus(asset.symbol, 'Options created, creating chart instance...')
