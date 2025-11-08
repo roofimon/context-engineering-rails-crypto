@@ -1,13 +1,13 @@
 <div class="md:hidden space-y-4">
   <% @assets.each do |asset| %>
-    <div class="bg-white border border-gray-200 rounded-lg p-4">
+    <div class="bg-white border border-gray-200 rounded-lg p-4" data-crypto="<%= asset[:symbol] %>">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center">
             <span class="text-white text-xs font-semibold"><%= asset[:icon] %></span>
           </div>
           <div>
-            <div id="asset-name" class="text-base font-medium text-gray-900" data-home-target="assetName"><%= asset[:name] %></div>
+            <div id="asset-name-<%= asset[:symbol].downcase %>" class="text-base font-medium text-gray-900" data-market-api-target="assetName"><%= asset[:name] %></div>
             <%= link_to asset[:symbol],
                 buy_crypto_path(asset[:symbol]),
                 class: "text-sm text-gray-500 hover:text-blue-600 cursor-pointer",
@@ -17,10 +17,10 @@
         <div class="text-right">
           <div class="text-sm text-gray-600">Average Price</div>
           <div class="text-lg font-semibold text-gray-900">
-            $<span data-home-target="price"><%= format_price(asset[:overall_price]) %></span>
+            $<span id="price-<%= asset[:symbol].downcase %>"><%= format_price(asset[:overall_price]) %></span>
           </div>
           <div class="text-sm text-gray-600">24h Change</div>
-          <div class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>" data-home-target="change">
+          <div id="change-<%= asset[:symbol].downcase %>" class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>" data-market-api-target="change">
             <%= asset[:change] >= 0 ? '+' : '' %><%= format_change(asset[:change]) %>%
           </div>
           <canvas id="mobile-chart-<%= asset[:symbol] %>" width="80" height="40" class="mt-2"></canvas>
@@ -31,16 +31,16 @@
         <% %w[Binance Coinbase].each do |exchange| %>
           <% data = asset[:exchanges][exchange] %>
           <% if data && data[:price] %>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between" data-exchange="<%= exchange %>" data-crypto="<%= asset[:symbol] %>">
               <span class="text-xs text-gray-600"><%= exchange %></span>
               <div class="flex items-center space-x-1">
                 <% if data[:change] == :up %>
-                  <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                  <div id="<%= exchange.downcase %>-<%= asset[:symbol].downcase %>-indicator" class="w-2 h-2 rounded-full bg-green-500" data-market-api-target="exchangeIndicator"></div>
                 <% elsif data[:change] == :down %>
-                  <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                  <div id="<%= exchange.downcase %>-<%= asset[:symbol].downcase %>-indicator" class="w-2 h-2 rounded-full bg-red-500" data-market-api-target="exchangeIndicator"></div>
                 <% end %>
                 <span class="text-sm text-gray-900 font-medium">
-                  $<span data-home-target="price"><%= format_price(data[:price]) %></span>
+                  $<span id="<%= exchange.downcase %>-<%= asset[:symbol].downcase %>" data-market-api-target="exchangePrice"><%= format_price(data[:price]) %></span>
                 </span>
               </div>
             </div>

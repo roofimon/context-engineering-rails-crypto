@@ -101,9 +101,10 @@ export default class extends Controller {
       console.log(`   USD Price: $${this.formatPrice(price)}`)
       console.log(`   24h Change: ${change24h >= 0 ? '+' : ''}${change24h?.toFixed(2)}%`)
       
-      // Update main price displays
+      // Update main price displays (works for both table and mobile card)
       this.priceTargets.forEach(priceElement => {
-        const assetRow = priceElement.closest('[data-crypto], tr')
+        // Look for both tr (desktop table) and div (mobile card) elements with data-crypto
+        const assetRow = priceElement.closest('[data-crypto], tr, div[data-crypto]')
         if (!assetRow) return
         
         // Check if this price element is for the current crypto
@@ -121,12 +122,14 @@ export default class extends Controller {
       })
       
       // Update exchange-specific prices (Binance & Coinbase columns)
+      // Works for both table (td) and mobile card (div) elements
       this.exchangePriceTargets.forEach(exchangePriceElement => {
-        const td = exchangePriceElement.closest('td')
-        if (!td) return
+        // Look for both td (desktop table) and div (mobile card) elements
+        const container = exchangePriceElement.closest('td, div[data-exchange]')
+        if (!container) return
         
-        const cryptoSymbol = td.getAttribute('data-crypto')
-        const exchangeName = td.getAttribute('data-exchange')
+        const cryptoSymbol = container.getAttribute('data-crypto')
+        const exchangeName = container.getAttribute('data-exchange')
         
         if (cryptoSymbol === symbol && exchangeName) {
           const oldPrice = parseFloat(exchangePriceElement.textContent.replace(/[$,]/g, ''))
@@ -138,8 +141,8 @@ export default class extends Controller {
           
           exchangePriceElement.textContent = this.formatPrice(adjustedPrice)
           
-          // Update indicator
-          const indicator = td.querySelector('[data-market-api-target="exchangeIndicator"]')
+          // Update indicator (works for both td and div containers)
+          const indicator = container.querySelector('[data-market-api-target="exchangeIndicator"]')
           if (indicator && !isNaN(oldPrice)) {
             const isUp = adjustedPrice > oldPrice
             indicator.className = `w-2 h-2 rounded-full ${isUp ? 'bg-green-500' : 'bg-red-500'}`
@@ -153,14 +156,15 @@ export default class extends Controller {
         }
       })
       
-      // Update 24h change
+      // Update 24h change (works for both table and mobile card)
       this.changeTargets.forEach(changeElement => {
-        const assetRow = changeElement.closest('[data-crypto], tr, .bg-white')
+        // Look for both tr (desktop table) and div (mobile card) elements with data-crypto
+        const assetRow = changeElement.closest('[data-crypto], tr, div[data-crypto]')
         if (!assetRow) return
         
         const assetName = assetRow.querySelector('[data-market-api-target="assetName"]')?.textContent.trim()
         const matchSymbol = this.findSymbolByName(assetName)
-        
+
         if (matchSymbol === symbol && change24h) {
           changeElement.textContent = `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%`
           changeElement.className = `text-sm font-medium ${change24h >= 0 ? 'text-green-600' : 'text-red-600'}`
