@@ -17,7 +17,7 @@
         <div class="text-right">
           <div class="text-sm text-gray-600">Average Price</div>
           <div class="text-lg font-semibold text-gray-900">
-            $<span id="price-<%= asset[:symbol].downcase %>"><%= format_price(asset[:overall_price]) %></span>
+            $<span id="price-<%= asset[:symbol].downcase %>" data-market-api-target="averagePrice"><%= format_price(asset[:overall_price]) %></span>
           </div>
           <div class="text-sm text-gray-600">24h Change</div>
           <div id="change-<%= asset[:symbol].downcase %>" class="text-sm font-medium <%= asset[:change] >= 0 ? 'text-green-600' : 'text-red-600' %>" data-market-api-target="change">
